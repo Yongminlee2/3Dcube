@@ -24,6 +24,7 @@ namespace CubeEditor
         public static void CreateAssets()
         {
             CreatePalettes();
+            CreateTouchSettings();
             CreateScene();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -104,6 +105,13 @@ namespace CubeEditor
             light.CubeBody      = Hex("#111111");
             light.StickerColors = StandardStickers();
             WriteAsset(light, "Assets/Resources/LightPalette.asset");
+        }
+
+        static void CreateTouchSettings()
+        {
+            Directory.CreateDirectory("Assets/Resources");
+            var s = ScriptableObject.CreateInstance<Cube.App.TouchInputSettings>();
+            WriteAsset(s, "Assets/Resources/TouchInputSettings.asset");
         }
 
         // 면 번호 순서: U, D, F, B, L, R
