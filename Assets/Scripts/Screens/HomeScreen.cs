@@ -11,8 +11,12 @@ namespace Cube.App
         Palette _p;
         Text _notice;
 
-        public void Build(RectTransform parent, Action<int> onPractice, Action onRecords, Action onSettings)
+        Action _onLearn;
+
+        public void Build(RectTransform parent, Action<int> onPractice, Action onLearn,
+                          Action onRecords, Action onSettings)
         {
+            _onLearn = onLearn;
             _p = ThemeService.Current;
             _size = AppSettings.CubeSize;
             transform.SetParent(parent, false);
@@ -41,10 +45,8 @@ namespace Cube.App
 
             MakeMenuButton("연습 시작", 0.48f, () => onPractice?.Invoke(_size));
 
-            // Phase B 자리. 눌러도 아무 일이 없다.
-            var learn = UiKit.Button(transform, "Learn", "배우기", _p, ShowNotice);
+            var learn = UiKit.Button(transform, "Learn", "배우기", _p, OpenLearn);
             UiKit.Stretch((RectTransform)learn.transform, new Vector2(0.08f, 0.37f), new Vector2(0.92f, 0.46f), Vector4.zero);
-            learn.GetComponentInChildren<Text>().color = _p.TextSecondary;
 
             MakeMenuButton("기록", 0.26f, () => onRecords?.Invoke());
             MakeMenuButton("설정", 0.15f, () => onSettings?.Invoke());
@@ -62,7 +64,17 @@ namespace Cube.App
                 new Vector2(0.08f, yMin), new Vector2(0.92f, yMin + 0.09f), Vector4.zero);
         }
 
-        void ShowNotice() { if (_notice != null) _notice.text = "배우기 모드는 준비 중입니다."; }
+        /// 학습 코스는 3×3만 있다. 다른 크기를 고른 상태면 안내만 하고 넘기지 않는다.
+        void OpenLearn()
+        {
+            if (_size != 3)
+            {
+                if (_notice != null) _notice.text = "배우기는 3×3부터 시작합니다. 3×3을 골라 주세요.";
+                return;
+            }
+            if (_notice != null) _notice.text = "";
+            _onLearn?.Invoke();
+        }
 
         void SelectSize(int size)
         {
