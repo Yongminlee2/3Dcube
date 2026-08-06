@@ -48,13 +48,13 @@ namespace Cube.App
             }
 
             var library = UiKit.Button(transform, "Library", "공식 모아보기", _p, () => onLibrary?.Invoke());
-            UiKit.Stretch((RectTransform)library.transform, new Vector2(0.06f, 0.12f), new Vector2(0.94f, 0.19f), Vector4.zero);
+            UiKit.Stretch((RectTransform)library.transform, new Vector2(0.06f, 0.105f), new Vector2(0.94f, 0.175f), Vector4.zero);
 
             var back = UiKit.Button(transform, "Back", "돌아가기", _p, () => onBack?.Invoke());
-            UiKit.Stretch((RectTransform)back.transform, new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.10f), Vector4.zero);
+            UiKit.Stretch((RectTransform)back.transform, new Vector2(0.06f, 0.025f), new Vector2(0.94f, 0.095f), Vector4.zero);
 
             _notice = UiKit.Label(transform, "Notice", "", 24, _p.TextSecondary);
-            UiKit.Stretch((RectTransform)_notice.transform, new Vector2(0f, 0.195f), new Vector2(1f, 0.235f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_notice.transform, new Vector2(0f, 0.180f), new Vector2(1f, 0.220f), Vector4.zero);
 
             Refresh();
         }

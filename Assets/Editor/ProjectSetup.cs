@@ -60,7 +60,11 @@ namespace CubeEditor
         static void ConfigurePlayer()
         {
             PlayerSettings.companyName = "ymlee";
-            PlayerSettings.productName = "3Dcube";
+
+            // 폰 홈 화면과 스토어에 뜨는 이름.
+            PlayerSettings.productName = "큐브 연습장";
+            PlayerSettings.bundleVersion = "1.0.0";
+            PlayerSettings.Android.bundleVersionCode = 1;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.ymlee.cube");
             PlayerSettings.colorSpace = ColorSpace.Linear;
 
