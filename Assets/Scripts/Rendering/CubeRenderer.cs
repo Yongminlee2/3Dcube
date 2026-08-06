@@ -114,6 +114,55 @@ namespace Cube.App
                     }
         }
 
+        /// Core 축을 Unity 회전축으로 옮긴다. GridToLocal의 Z 반전과 짝을 이룬다.
+        public static Vector3 UnityAxis(Axis axis)
+            => axis == Axis.X ? Vector3.right
+             : axis == Axis.Y ? Vector3.up
+             : Vector3.back;
+
+        public IReadOnlyList<Transform> CubiesInLayer(Move m)
+        {
+            int target = _n - 1 - m.Layer;
+            var list = new List<Transform>();
+            foreach (var t in _cubies)
+            {
+                var mk = t.GetComponent<CubieMarker>();
+                int c = m.Axis == Axis.X ? mk.X : m.Axis == Axis.Y ? mk.Y : mk.Z;
+                if (c == target) list.Add(t);
+            }
+            return list;
+        }
+
+        /// 무브에 맞춰 스티커 배열·격자·마커를 재배치한다.
+        /// 트랜스폼은 건드리지 않는다 — 그쪽은 LayerRotator가 애니메이션으로 따라붙인다.
+        public void CommitPermutation(Move m)
+        {
+            int[] perm = MovePermutation.For(m, _n);
+            var newStickers = new MeshRenderer[_stickers.Length];
+            for (int i = 0; i < perm.Length; i++)
+                newStickers[perm[i] >= 0 ? perm[i] : i] = _stickers[i];
+            _stickers = newStickers;
+
+            int target = _n - 1 - m.Layer;
+            var moved = new List<(CubieMarker mk, int x, int y, int z)>();
+            foreach (var t in _cubies)
+            {
+                var mk = t.GetComponent<CubieMarker>();
+                int c = m.Axis == Axis.X ? mk.X : m.Axis == Axis.Y ? mk.Y : mk.Z;
+                if (c != target) continue;
+
+                int nx = mk.X, ny = mk.Y, nz = mk.Z;
+                for (int i = 0; i < m.Turns; i++)
+                    CubeCoords.RotateGridCW(nx, ny, nz, m.Axis, _n, out nx, out ny, out nz);
+                moved.Add((mk, nx, ny, nz));
+            }
+            foreach (var (mk, x, y, z) in moved)
+            {
+                mk.X = x; mk.Y = y; mk.Z = z;
+                _grid[x, y, z] = mk.transform;
+            }
+        }
+
         public void Clear()
         {
             for (int i = transform.childCount - 1; i >= 0; i--)

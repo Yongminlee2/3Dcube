@@ -50,21 +50,40 @@ namespace Cube.Core
         /// 축의 양의 방향에서 원점을 볼 때 시계방향으로 90° 돌린다.
         public static FaceletPoint RotateCW(in FaceletPoint p, Axis axis, int n)
         {
+            RotateGridCW(p.X, p.Y, p.Z, axis, n, out int rx, out int ry, out int rz);
+            RotateNormalCW(p.NX, p.NY, p.NZ, axis, out int rnx, out int rny, out int rnz);
+            return new FaceletPoint(rx, ry, rz, rnx, rny, rnz);
+        }
+
+        /// 격자 좌표만 90° 돌린다. 법선은 다루지 않는다.
+        public static void RotateGridCW(int x, int y, int z, Axis axis, int n,
+                                        out int rx, out int ry, out int rz)
+        {
             int m = n - 1;
             // 중심이 반정수가 되는 짝수 N을 피하려고 좌표를 2배로 늘려서 회전한다.
-            int dx = 2 * p.X - m, dy = 2 * p.Y - m, dz = 2 * p.Z - m;
-            int nx = p.NX, ny = p.NY, nz = p.NZ;
-            int rx, ry, rz, rnx, rny, rnz;
-
+            int dx = 2 * x - m, dy = 2 * y - m, dz = 2 * z - m;
+            int ax, ay, az;
             switch (axis)
             {
-                case Axis.X: rx =  dx; ry =  dz; rz = -dy; rnx =  nx; rny =  nz; rnz = -ny; break;
-                case Axis.Y: rx = -dz; ry =  dy; rz =  dx; rnx = -nz; rny =  ny; rnz =  nx; break;
-                case Axis.Z: rx =  dy; ry = -dx; rz =  dz; rnx =  ny; rny = -nx; rnz =  nz; break;
+                case Axis.X: ax =  dx; ay =  dz; az = -dy; break;
+                case Axis.Y: ax = -dz; ay =  dy; az =  dx; break;
+                case Axis.Z: ax =  dy; ay = -dx; az =  dz; break;
                 default: throw new ArgumentOutOfRangeException(nameof(axis));
             }
+            rx = (ax + m) / 2; ry = (ay + m) / 2; rz = (az + m) / 2;
+        }
 
-            return new FaceletPoint((rx + m) / 2, (ry + m) / 2, (rz + m) / 2, rnx, rny, rnz);
+        /// 방향 벡터만 90° 돌린다.
+        public static void RotateNormalCW(int nx, int ny, int nz, Axis axis,
+                                          out int rx, out int ry, out int rz)
+        {
+            switch (axis)
+            {
+                case Axis.X: rx =  nx; ry =  nz; rz = -ny; break;
+                case Axis.Y: rx = -nz; ry =  ny; rz =  nx; break;
+                case Axis.Z: rx =  ny; ry = -nx; rz =  nz; break;
+                default: throw new ArgumentOutOfRangeException(nameof(axis));
+            }
         }
 
         public static int Component(in FaceletPoint p, Axis axis)

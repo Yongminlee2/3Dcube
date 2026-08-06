@@ -57,29 +57,16 @@ namespace Cube.Core
 
         /// 회전 한 번을 적용한다.
         ///
-        /// 층 안에 들어가는 칸을 전부 찾아 좌표째로 돌린 다음 다시 칸 번호로 되돌린다.
-        /// 이 방식이면 바깥층(면 전체가 도는 경우)과 안쪽층(띠만 도는 경우)을
-        /// 따로 처리할 필요가 없다.
+        /// 층 안에 들어가는 칸이 어디로 가는지는 MovePermutation이 계산한다.
+        /// 그림을 옮기는 쪽도 같은 표를 보므로 상태와 화면이 어긋날 여지가 없다.
         public void Apply(Move m)
         {
             if (m.Layer >= N) throw new ArgumentOutOfRangeException(nameof(m), $"층 {m.Layer}은(는) {N}칸 큐브에 없다");
 
-            int target = N - 1 - m.Layer;
+            int[] perm = MovePermutation.For(m, N);
             var result = (byte[])Facelets.Clone();
-
-            for (int f = 0; f < Faces.Count; f++)
-                for (int row = 0; row < N; row++)
-                    for (int col = 0; col < N; col++)
-                    {
-                        var p = CubeCoords.ToPoint((Face)f, row, col, N);
-                        if (CubeCoords.Component(p, m.Axis) != target) continue;
-
-                        for (int t = 0; t < m.Turns; t++) p = CubeCoords.RotateCW(p, m.Axis, N);
-
-                        CubeCoords.ToFacelet(p, N, out Face nf, out int nr, out int nc);
-                        result[IndexOf(nf, nr, nc)] = Facelets[IndexOf((Face)f, row, col)];
-                    }
-
+            for (int i = 0; i < perm.Length; i++)
+                if (perm[i] >= 0) result[perm[i]] = Facelets[i];
             Array.Copy(result, Facelets, Facelets.Length);
         }
     }
