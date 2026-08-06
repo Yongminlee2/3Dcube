@@ -158,10 +158,18 @@ namespace CubeEditor
         }
 
         // 면 번호 순서: U, D, F, B, L, R
+        //
+        // 흰색을 D에 둔다. 초보자 강의는 예외 없이 흰 십자를 바닥에서 시작하고,
+        // 표준 공식(Sune, T-perm 등)은 마지막 층이 U라고 가정하기 때문이다.
+        // 흰색을 아래로 뒤집으면 좌우가 맞바뀌므로 L이 빨강, R이 주황이 된다.
         static Color[] StandardStickers() => new[]
         {
-            Hex("#F2F2F2"), Hex("#F5D000"), Hex("#00A24A"),
-            Hex("#0A5FD6"), Hex("#FF7A00"), Hex("#E02020"),
+            Hex("#F5D000"),  // U 노랑
+            Hex("#F2F2F2"),  // D 흰색
+            Hex("#00A24A"),  // F 초록
+            Hex("#0A5FD6"),  // B 파랑
+            Hex("#E02020"),  // L 빨강
+            Hex("#FF7A00"),  // R 주황
         };
 
         static void WriteAsset(Object obj, string path)
