@@ -178,6 +178,20 @@ namespace Cube.App
             rt.offsetMax = Vector2.zero;
         }
 
+        // 큐브 부품은 화면들이 공유한다. 숨어 있는 동안에도 구독이 살아 있으면
+        // 학습 화면에서 돌린 수가 연습 기록으로 새어 들어간다.
+        void OnEnable()
+        {
+            if (_rotator == null) return;
+            _rotator.MoveApplied -= OnMoveApplied;
+            _rotator.MoveApplied += OnMoveApplied;
+        }
+
+        void OnDisable()
+        {
+            if (_rotator != null) _rotator.MoveApplied -= OnMoveApplied;
+        }
+
         void OnDestroy()
         {
             if (_rotator != null) _rotator.MoveApplied -= OnMoveApplied;

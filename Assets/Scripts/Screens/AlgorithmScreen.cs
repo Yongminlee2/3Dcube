@@ -83,6 +83,7 @@ namespace Cube.App
 
             var cam = AppBootstrap.Instance != null ? AppBootstrap.Instance.CubeCamera : Camera.main;
             var orbit = GetOrAdd<OrbitCamera>(_renderer.gameObject);
+            orbit.Init(_renderer.transform);   // 기본 시점을 잡아야 세 면이 보인다
             if (cam != null) _touch.Init(cam, _renderer, _rotator, orbit);
             _player.Init(_renderer, _rotator, _touch);
 

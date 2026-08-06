@@ -41,29 +41,29 @@ namespace Cube.App
 
             _body = UiKit.Label(transform, "Body", "", 30, _p.TextPrimary, TextAnchor.UpperLeft);
             _body.horizontalOverflow = HorizontalWrapMode.Wrap;
-            UiKit.Stretch((RectTransform)_body.transform, new Vector2(0f, 0.36f), new Vector2(1f, 0.54f), new Vector4(48, 0, 48, 0));
+            UiKit.Stretch((RectTransform)_body.transform, new Vector2(0f, 0.42f), new Vector2(1f, 0.56f), new Vector4(48, 0, 48, 0));
 
             _pageLabel = UiKit.Label(transform, "Page", "", 24, _p.TextSecondary);
-            UiKit.Stretch((RectTransform)_pageLabel.transform, new Vector2(0.35f, 0.29f), new Vector2(0.65f, 0.345f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_pageLabel.transform, new Vector2(0.35f, 0.355f), new Vector2(0.65f, 0.41f), Vector4.zero);
 
             _prev = UiKit.Button(transform, "Prev", "이전", _p, () => TurnPage(-1));
-            UiKit.Stretch((RectTransform)_prev.transform, new Vector2(0.06f, 0.28f), new Vector2(0.33f, 0.35f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_prev.transform, new Vector2(0.06f, 0.345f), new Vector2(0.33f, 0.415f), Vector4.zero);
 
             _next = UiKit.Button(transform, "Next", "다음", _p, () => TurnPage(1));
-            UiKit.Stretch((RectTransform)_next.transform, new Vector2(0.67f, 0.28f), new Vector2(0.94f, 0.35f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_next.transform, new Vector2(0.67f, 0.345f), new Vector2(0.94f, 0.415f), Vector4.zero);
 
             var algPanel = UiKit.Panel(transform, "Algorithms", new Color(0, 0, 0, 0));
-            UiKit.Stretch(algPanel, new Vector2(0.06f, 0.13f), new Vector2(0.94f, 0.27f), Vector4.zero);
+            UiKit.Stretch(algPanel, new Vector2(0.06f, 0.20f), new Vector2(0.94f, 0.335f), Vector4.zero);
             _algRoot = algPanel;
 
             _status = UiKit.Label(transform, "Status", "", 26, _p.Accent);
-            UiKit.Stretch((RectTransform)_status.transform, new Vector2(0f, 0.085f), new Vector2(1f, 0.13f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_status.transform, new Vector2(0f, 0.145f), new Vector2(1f, 0.195f), Vector4.zero);
 
             _practice = UiKit.Button(transform, "Practice", "연습하기", _p, Practice);
-            UiKit.Stretch((RectTransform)_practice.transform, new Vector2(0.06f, 0.015f), new Vector2(0.48f, 0.08f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_practice.transform, new Vector2(0.06f, 0.03f), new Vector2(0.48f, 0.115f), Vector4.zero);
 
             _rewind = UiKit.Button(transform, "Rewind", "큐브 되돌리기", _p, ResetCube);
-            UiKit.Stretch((RectTransform)_rewind.transform, new Vector2(0.52f, 0.015f), new Vector2(0.94f, 0.08f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_rewind.transform, new Vector2(0.52f, 0.03f), new Vector2(0.94f, 0.115f), Vector4.zero);
 
             var back = UiKit.Button(transform, "Back", "목록", _p, () => onBack?.Invoke());
             UiKit.Stretch((RectTransform)back.transform, new Vector2(0.72f, 0.905f), new Vector2(0.96f, 0.965f), Vector4.zero);
@@ -112,6 +112,9 @@ namespace Cube.App
 
             var cam = AppBootstrap.Instance != null ? AppBootstrap.Instance.CubeCamera : Camera.main;
             var orbit = GetOrAdd<OrbitCamera>(_renderer.gameObject);
+            // Init을 불러야 기본 시점이 잡힌다. 안 부르면 큐브가 정면만 보여
+            // 세 면 중 하나밖에 안 보인다 — 배우는 화면에서는 치명적이다.
+            orbit.Init(_renderer.transform);
             if (cam != null) _touch.Init(cam, _renderer, _rotator, orbit);
             _player.Init(_renderer, _rotator, _touch);
 
@@ -198,6 +201,19 @@ namespace Cube.App
                 ? $"통과했습니다. {Stage + 1}단계가 열렸습니다."
                 : "큐브를 다 맞췄습니다.";
             StagePassed?.Invoke(Stage);
+        }
+
+        // 연습 화면과 큐브 부품을 공유하므로, 숨어 있는 동안에는 구독을 끊는다.
+        void OnDisable()
+        {
+            if (_rotator != null) _rotator.MoveApplied -= OnMoveApplied;
+        }
+
+        void OnEnable()
+        {
+            if (_rotator == null) return;
+            _rotator.MoveApplied -= OnMoveApplied;
+            _rotator.MoveApplied += OnMoveApplied;
         }
 
         void OnDestroy()
