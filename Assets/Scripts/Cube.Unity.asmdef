@@ -1,0 +1,14 @@
+{
+    "name": "Cube.Unity",
+    "rootNamespace": "Cube.App",
+    "references": ["Cube.Core", "Unity.RenderPipelines.Universal.Runtime"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

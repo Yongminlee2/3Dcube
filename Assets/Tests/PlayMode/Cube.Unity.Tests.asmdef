@@ -1,0 +1,14 @@
+{
+    "name": "Cube.Unity.Tests",
+    "rootNamespace": "Cube.App.Tests",
+    "references": ["Cube.Core", "Cube.Unity", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
