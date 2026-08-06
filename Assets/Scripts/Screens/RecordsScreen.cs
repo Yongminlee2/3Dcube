@@ -11,7 +11,9 @@ namespace Cube.App
         int _size = 3;
         bool _clearArmed;
 
-        public void Build(RectTransform parent, SessionStore store)
+        Button[] _tabs;
+
+        public void Build(RectTransform parent, SessionStore store, System.Action onBack)
         {
             _store = store;
             var p = ThemeService.Current;
@@ -26,6 +28,7 @@ namespace Cube.App
 
             var tabs = UiKit.Panel(transform, "Tabs", new Color(0, 0, 0, 0));
             UiKit.Stretch(tabs, new Vector2(0.04f, 0.82f), new Vector2(0.96f, 0.89f), Vector4.zero);
+            _tabs = new Button[3];
             for (int i = 0; i < 3; i++)
             {
                 int size = i + 2;
@@ -35,6 +38,7 @@ namespace Cube.App
                 rt.anchorMax = new Vector2((i + 1) / 3f, 1f);
                 rt.offsetMin = new Vector2(4f, 0f);
                 rt.offsetMax = new Vector2(-4f, 0f);
+                _tabs[i] = btn;
             }
 
             _stats = UiKit.Label(transform, "Stats", "", 30, p.Accent, TextAnchor.UpperLeft);
@@ -43,8 +47,12 @@ namespace Cube.App
             _list = UiKit.Label(transform, "List", "", 26, p.TextSecondary, TextAnchor.UpperLeft);
             UiKit.Stretch((RectTransform)_list.transform, new Vector2(0f, 0.12f), new Vector2(1f, 0.70f), new Vector4(48, 0, 48, 0));
 
-            var clear = UiKit.Button(transform, "Clear", "이 세션 기록 모두 지우기", p, ConfirmClear);
-            UiKit.Stretch((RectTransform)clear.transform, new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.10f), Vector4.zero);
+            var clear = UiKit.Button(transform, "Clear", "이 세션 기록 지우기", p, ConfirmClear);
+            UiKit.Stretch((RectTransform)clear.transform, new Vector2(0.04f, 0.03f), new Vector2(0.58f, 0.10f), Vector4.zero);
+
+            // 돌아가기가 없어서 안드로이드 뒤로가기 키로만 나갈 수 있었다.
+            var back = UiKit.Button(transform, "Back", "돌아가기", p, () => onBack?.Invoke());
+            UiKit.Stretch((RectTransform)back.transform, new Vector2(0.62f, 0.03f), new Vector2(0.96f, 0.10f), Vector4.zero);
 
             Show(AppSettings.CubeSize);
         }
@@ -63,6 +71,12 @@ namespace Cube.App
         {
             if (_size != cubeSize) _clearArmed = false;
             _size = cubeSize;
+
+            var palette = ThemeService.Current;
+            if (_tabs != null)
+                for (int i = 0; i < _tabs.Length; i++)
+                    _tabs[i].image.color = (i + 2 == _size) ? palette.Accent : palette.Surface;
+
             var records = _store.Records(cubeSize);
 
             double? best = SessionStats.Best(records);

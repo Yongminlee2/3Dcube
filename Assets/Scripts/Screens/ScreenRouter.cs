@@ -32,7 +32,7 @@ namespace Cube.App
                         () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
 
             Records = new GameObject("RecordsScreen").AddComponent<RecordsScreen>();
-            Records.Build(_canvasRect, store);
+            Records.Build(_canvasRect, store, () => Go(ScreenId.Home));
 
             _settings = new GameObject("SettingsScreen").AddComponent<SettingsScreen>();
             _settings.Build(_canvasRect, () => Go(ScreenId.Home));

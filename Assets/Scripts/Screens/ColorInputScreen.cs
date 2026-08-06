@@ -179,9 +179,14 @@ namespace Cube.App
             var p = ThemeService.Current;
             for (int i = 0; i < _swatches.Length; i++)
             {
-                _swatches[i].image.color = p.StickerColors[i];
+                var swatch = p.StickerColors[i];
+                _swatches[i].image.color = swatch;
+
+                // 색 위에 글자를 얹으므로 밝기에 따라 글자색을 뒤집는다.
+                // 어두운 글자를 파랑·빨강 위에 쓰면 읽히지 않는다.
+                float luminance = 0.299f * swatch.r + 0.587f * swatch.g + 0.114f * swatch.b;
                 var label = _swatches[i].GetComponentInChildren<Text>();
-                label.color = i == SelectedColor ? p.TextPrimary : p.CubeBody;
+                label.color = luminance > 0.55f ? new Color(0.06f, 0.06f, 0.07f) : Color.white;
                 label.text = i == SelectedColor ? $"◉ {FaceNames[i]}" : FaceNames[i];
             }
         }
