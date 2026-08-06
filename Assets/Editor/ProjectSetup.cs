@@ -26,6 +26,7 @@ namespace CubeEditor
         {
             CreatePalettes();
             CreateTouchSettings();
+            CreateCubieMaterial();
             CreateScene();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -148,6 +149,23 @@ namespace CubeEditor
             light.CubeBody      = Hex("#111111");
             light.StickerColors = StandardStickers();
             WriteAsset(light, "Assets/Resources/LightPalette.asset");
+        }
+
+        /// 큐비에 쓸 머티리얼을 애셋으로 만들어 Resources에 둔다.
+        ///
+        /// 런타임에 Shader.Find로 찾으면 빌드에서 null이 나온다. 어떤 애셋도
+        /// URP Lit을 참조하지 않으면 빌드에서 통째로 잘려나가기 때문이다.
+        /// 에디터에서는 멀쩡히 돌아서 테스트로는 절대 안 잡힌다 — 실기기에서만 터진다.
+        static void CreateCubieMaterial()
+        {
+            Directory.CreateDirectory("Assets/Resources");
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                Debug.LogError("[ProjectSetup] URP Lit 셰이더를 찾을 수 없다. URP 설정을 확인할 것");
+                return;
+            }
+            WriteAsset(new Material(shader), "Assets/Resources/CubieMaterial.mat");
         }
 
         static void CreateTouchSettings()

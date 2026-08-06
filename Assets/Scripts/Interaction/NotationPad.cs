@@ -18,47 +18,44 @@ namespace Cube.App
         public bool Prime { get; set; }
         public bool Wide { get; set; }
 
-        public void Build(RectTransform parent, int n, Palette p, Action<Move> onMove)
+        /// **자기 자신의 RectTransform 안에** 버튼을 깐다.
+        /// 부모로 옮기거나 자기 앵커를 건드리지 않는다 — 이 컴포넌트는 대개
+        /// 이미 자리를 잡아 둔 오브젝트에 붙기 때문이다. 예전에 여기서
+        /// 앵커를 전체 화면으로 덮어써서 패드가 화면을 통째로 가렸다.
+        public void Build(RectTransform area, int n, Palette p, Action<Move> onMove)
         {
             _n = n; _onMove = onMove; _palette = p;
-            transform.SetParent(parent, false);
 
             var root = gameObject.GetComponent<RectTransform>();
             if (root == null) root = gameObject.AddComponent<RectTransform>();
-            UiKit.Stretch(root, Vector2.zero, Vector2.one, Vector4.zero);
+            if (area != null && area != root) { transform.SetParent(area, false); UiKit.Stretch(root, Vector2.zero, Vector2.one, Vector4.zero); }
 
-            // 4칸 큐브는 안쪽 층 버튼이 한 줄 더 붙는다.
             int columns = Letters.Length;
-            int rows = n >= 4 ? 2 : 1;
+            int faceRows = n >= 4 ? 2 : 1;     // 4칸 큐브는 안쪽 층 버튼이 한 줄 더 붙는다
+            int rows = faceRows + 1;           // 마지막 줄은 반시계·넓은수 토글
 
-            for (int r = 0; r < rows; r++)
+            for (int r = 0; r < faceRows; r++)
                 for (int c = 0; c < columns; c++)
                 {
-                    int depth = r + 1;                  // 1 = 바깥층, 2 = 안쪽 층
-                    string label = depth == 1 ? Letters[c] : "2" + Letters[c];
+                    string label = r == 0 ? Letters[c] : "2" + Letters[c];
                     var btn = UiKit.Button(transform, $"Pad_{label}", label, p, null);
                     string captured = label;
                     btn.onClick.AddListener(() => Fire(captured));
-
-                    var rt = (RectTransform)btn.transform;
-                    rt.anchorMin = new Vector2(c / (float)columns, 1f - (r + 1) / (float)rows);
-                    rt.anchorMax = new Vector2((c + 1) / (float)columns, 1f - r / (float)rows);
-                    rt.offsetMin = new Vector2(3f, 3f);
-                    rt.offsetMax = new Vector2(-3f, -3f);
+                    PlaceCell((RectTransform)btn.transform, c, c + 1, columns, r, rows);
                 }
 
-            _primeButton = UiKit.Button(transform, "Pad_Prime", "'", p, TogglePrime);
-            _wideButton = UiKit.Button(transform, "Pad_Wide", "w", p, ToggleWide);
-            PlaceToggle((RectTransform)_primeButton.transform, 0f);
-            PlaceToggle((RectTransform)_wideButton.transform, 0.5f);
+            _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계 '", p, TogglePrime);
+            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은수 w", p, ToggleWide);
+            PlaceCell((RectTransform)_primeButton.transform, 0, 3, columns, faceRows, rows);
+            PlaceCell((RectTransform)_wideButton.transform, 3, 6, columns, faceRows, rows);
             _wideButton.gameObject.SetActive(n >= 4);
             RefreshToggleColors();
         }
 
-        void PlaceToggle(RectTransform rt, float xMin)
+        static void PlaceCell(RectTransform rt, int colFrom, int colTo, int columns, int row, int rows)
         {
-            rt.anchorMin = new Vector2(xMin, -0.85f);
-            rt.anchorMax = new Vector2(xMin + 0.5f, -0.05f);
+            rt.anchorMin = new Vector2(colFrom / (float)columns, 1f - (row + 1) / (float)rows);
+            rt.anchorMax = new Vector2(colTo / (float)columns, 1f - row / (float)rows);
             rt.offsetMin = new Vector2(3f, 3f);
             rt.offsetMax = new Vector2(-3f, -3f);
         }

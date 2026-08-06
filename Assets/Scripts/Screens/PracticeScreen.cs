@@ -39,6 +39,14 @@ namespace Cube.App
             if (root == null) root = gameObject.AddComponent<RectTransform>();
             UiKit.Stretch(root, Vector2.zero, Vector2.one, Vector4.zero);
 
+            // 두 번 지어도 UI가 겹쳐 쌓이지 않게 한다.
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                var old = transform.GetChild(i).gameObject;
+                old.transform.SetParent(null, false);
+                if (Application.isPlaying) Destroy(old); else DestroyImmediate(old);
+            }
+
             // --- 3D 쪽 ---
             var cubeRoot = AppBootstrap.Instance != null
                 ? AppBootstrap.Instance.CubeRoot
@@ -72,13 +80,13 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)_scrambleLabel.transform, new Vector2(0f, 0.83f), new Vector2(1f, 0.90f), new Vector4(40, 0, 40, 0));
 
             var netRoot = UiKit.Panel(transform, "Net", new Color(0, 0, 0, 0));
-            UiKit.Stretch(netRoot, new Vector2(0.12f, 0.24f), new Vector2(0.88f, 0.42f), Vector4.zero);
+            UiKit.Stretch(netRoot, new Vector2(0.16f, 0.29f), new Vector2(0.84f, 0.49f), Vector4.zero);
             _net = netRoot.gameObject.AddComponent<NetView>();
             _net.Build(_n);
             _net.Refresh(Renderer.State);
 
             var padRoot = UiKit.Panel(transform, "Pad", new Color(0, 0, 0, 0));
-            UiKit.Stretch(padRoot, new Vector2(0.03f, 0.13f), new Vector2(0.97f, 0.20f), Vector4.zero);
+            UiKit.Stretch(padRoot, new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.255f), Vector4.zero);
             _padRoot = padRoot.gameObject;
             _pad = padRoot.gameObject.AddComponent<NotationPad>();
             _pad.Build(padRoot, _n, p, ApplyMove);
@@ -205,8 +213,7 @@ namespace Cube.App
             // 섞는 동안에는 타이머가 반응하지 않아야 한다.
             _armed = false;
             _suppressHistory = true;
-            _rotator.EnqueueRange(MoveNotation.Parse(CurrentScramble, _n));
-            _rotator.FinishAllImmediately();
+            _rotator.ApplyInstant(MoveNotation.Parse(CurrentScramble, _n));
             _suppressHistory = false;
 
             _history.Clear();

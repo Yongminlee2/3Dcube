@@ -25,6 +25,7 @@ namespace Cube.App
             BuildLight();
             CubeRoot = new GameObject("CubeRoot").transform;
             CubeRoot.SetParent(transform, false);
+            LiftCube();
             UiCanvas = BuildCanvas();
 
             ThemeService.Changed += OnThemeChanged;
@@ -57,10 +58,41 @@ namespace Cube.App
             cam.fieldOfView = 40f;
             cam.nearClipPlane = 0.1f;
             cam.farClipPlane = 100f;
-            cam.transform.position = new Vector3(0f, 0f, -8f);
-            cam.transform.LookAt(Vector3.zero);
+
+            // 카메라 rect로 위쪽만 그리게 하면 안 된다. 그러면 나머지 영역이
+            // 아예 지워지지 않아 이전 화면이 유령처럼 남는다. 실기기에서 정확히 그랬다.
+            // 화면 전체를 쓰고, 대신 큐브를 위로 띄워 아래를 UI에 내준다.
+            cam.transform.position = new Vector3(0f, 0f, -CameraDistance(cam));
+            cam.transform.rotation = Quaternion.identity;
             go.tag = "MainCamera";
             return cam;
+        }
+
+        /// 3칸 큐브의 대각선에 여유를 더한 값.
+        const float CubeHalfExtent = 2.7f;
+
+        /// 큐브 중심을 화면 중앙에서 위로 얼마나 올릴지 (보이는 높이에 대한 비율).
+        const float CubeLiftRatio = 0.22f;
+
+        static float ScreenAspect()
+            => Screen.height > 0 ? (float)Screen.width / Screen.height : 1f;
+
+        /// 세로 화면에서는 가로로 보이는 폭이 세로보다 훨씬 좁다.
+        /// 시야각은 세로 기준이라, 거리를 세로만 보고 잡으면 큐브가 좌우로 잘린다.
+        static float CameraDistance(Camera cam)
+        {
+            float halfV = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            float halfH = halfV * ScreenAspect();
+            float tighter = Mathf.Max(0.01f, Mathf.Min(halfV, halfH));
+            return CubeHalfExtent / tighter;
+        }
+
+        /// 큐브를 화면 위쪽으로 올린다. 아래쪽은 전개도와 버튼이 쓴다.
+        void LiftCube()
+        {
+            float halfV = Mathf.Tan(CubeCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            float visibleHalfHeight = CameraDistance(CubeCamera) * halfV;
+            CubeRoot.localPosition = new Vector3(0f, visibleHalfHeight * CubeLiftRatio * 2f, 0f);
         }
 
         void BuildLight()

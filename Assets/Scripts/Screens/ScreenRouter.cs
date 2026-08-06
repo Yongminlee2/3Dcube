@@ -49,6 +49,9 @@ namespace Cube.App
             ColorInput = new GameObject("ColorInputScreen").AddComponent<ColorInputScreen>();
             ColorInput.Build(_canvasRect, AcceptRealCube, () => Go(ScreenId.Home));
 
+            // 화면을 만드는 도중에 무엇이 터지더라도 전부 겹쳐 보이지는 않게 한다.
+            // 실기기에서 셰이더 예외로 Build가 중단됐을 때 정확히 그렇게 됐다.
+            HideAll();
             Go(ScreenId.Home);
         }
 
@@ -92,6 +95,22 @@ namespace Cube.App
                 Moves = moves,
             });
             Store.Save();
+        }
+
+        void HideAll()
+        {
+            foreach (var go in new[]
+            {
+                _home != null ? _home.gameObject : null,
+                Practice != null ? Practice.gameObject : null,
+                Records != null ? Records.gameObject : null,
+                _settings != null ? _settings.gameObject : null,
+                Learn != null ? Learn.gameObject : null,
+                Lesson != null ? Lesson.gameObject : null,
+                Library != null ? Library.gameObject : null,
+                ColorInput != null ? ColorInput.gameObject : null,
+            })
+                if (go != null) go.SetActive(false);
         }
 
         public void Go(ScreenId id)

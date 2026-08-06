@@ -45,6 +45,30 @@ namespace Cube.App
             foreach (var m in moves) Enqueue(m);
         }
 
+        /// 애니메이션 없이 한꺼번에 적용한다.
+        ///
+        /// 섞기처럼 스무 수를 밀어 넣을 때는 이걸 쓴다. 큐에 넣으면 큐 넘침과
+        /// 중간 중단이 얽혀 큐비가 흩어진 채 남는다 — 실기기에서 정확히 그랬다.
+        /// 어차피 섞는 과정을 애니메이션으로 보여줄 이유도 없다.
+        public void ApplyInstant(IEnumerable<Move> moves)
+        {
+            if (_renderer == null || _renderer.State == null) return;
+
+            FinishAllImmediately();
+
+            var state = _renderer.State;
+            foreach (var m in moves)
+            {
+                state.Apply(m);
+                MoveApplied?.Invoke(m);
+            }
+
+            // 회전 애니메이션을 건너뛰면 큐비의 방향이 상태와 어긋난다.
+            // 자리만 옮기고 돌리지 않으면 스티커가 뒤를 보고 몸통만 보인다 —
+            // 실기기에서 정확히 그랬다. 상태에서 통째로 다시 짓는 편이 확실하다.
+            _renderer.Build(state);
+        }
+
         /// 손가락이 이미 돌려 놓은 각도에서 이어서 애니메이션한다.
         /// 0부터 다시 그리면 손을 떼는 순간 화면이 튄다.
         public void EnqueueFromAngle(Move m, float startAngleDeg)

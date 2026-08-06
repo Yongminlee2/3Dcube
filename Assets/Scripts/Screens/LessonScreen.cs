@@ -181,8 +181,7 @@ namespace Cube.App
         public void Practice()
         {
             ResetCube();
-            _rotator.EnqueueRange(MoveNotation.Parse(_lesson.PracticeSetup, 3));
-            _rotator.FinishAllImmediately();
+            _rotator.ApplyInstant(MoveNotation.Parse(_lesson.PracticeSetup, 3));
 
             InPractice = true;
             _status.text = "직접 맞춰 보세요.";

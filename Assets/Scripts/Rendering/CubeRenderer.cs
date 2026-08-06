@@ -41,11 +41,19 @@ namespace Cube.App
             _stickers = new MeshRenderer[Faces.Count * _n * _n];
 
             var palette = ThemeService.Current;
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            _bodyMaterial = new Material(shader) { color = palette.CubeBody };
+
+            // Resources의 머티리얼 애셋에서 복제한다. Shader.Find로 찾으면
+            // 빌드에서 null이 나온다 — 어떤 애셋도 그 셰이더를 참조하지 않으면
+            // 빌드에서 잘려나가기 때문이다. 에디터에서는 멀쩡해서 테스트로는 안 잡힌다.
+            var template = Resources.Load<Material>("CubieMaterial");
+            if (template == null)
+                throw new MissingReferenceException(
+                    "Assets/Resources/CubieMaterial.mat이 없다. ProjectSetup.CreateAssets를 돌릴 것");
+
+            _bodyMaterial = new Material(template) { color = palette.CubeBody };
             _stickerMaterials = new Material[6];
             for (int i = 0; i < 6; i++)
-                _stickerMaterials[i] = new Material(shader) { color = palette.StickerColors[i] };
+                _stickerMaterials[i] = new Material(template) { color = palette.StickerColors[i] };
 
             for (int x = 0; x < _n; x++)
                 for (int y = 0; y < _n; y++)
@@ -86,18 +94,25 @@ namespace Cube.App
                         var p = CubeCoords.ToPoint((Face)f, row, col, _n);
                         var parent = _grid[p.X, p.Y, p.Z];
 
-                        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                        quad.name = $"Sticker_{(Face)f}_{row}_{col}";
-                        DestroyNow(quad.GetComponent<Collider>());
-                        quad.transform.SetParent(parent, false);
+                        // Quad가 아니라 납작한 정육면체를 쓴다.
+                        // CreatePrimitive(Quad)는 MeshCollider를 붙이려 하는데
+                        // 그 클래스가 빌드에서 잘려나가면 통째로 실패한다. 에디터에서는
+                        // 멀쩡히 돌아서 실기기에서만 드러났다. 정육면체는 BoxCollider를
+                        // 쓰므로 그 경로를 타지 않고, 양면이라 방향을 틀릴 일도 없다.
+                        var sticker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        sticker.name = $"Sticker_{(Face)f}_{row}_{col}";
+                        DestroyNow(sticker.GetComponent<Collider>());
+                        sticker.transform.SetParent(parent, false);
 
                         // 법선도 Z를 뒤집어 Unity 방향으로 옮긴다.
                         var dir = new Vector3(p.NX, p.NY, -p.NZ);
-                        quad.transform.localPosition = dir * 0.52f;
-                        quad.transform.localRotation = Quaternion.LookRotation(dir);
-                        quad.transform.localScale = new Vector3(0.86f, 0.86f, 1f);
+                        // 두께의 절반(0.03)만큼 몸통 바깥으로 밀어낸다. 딱 0.5에 두면
+                        // 몸통 표면과 겹쳐 z-파이팅이 나서 스티커가 군데군데 사라진다.
+                        sticker.transform.localPosition = dir * 0.53f;
+                        sticker.transform.localRotation = Quaternion.LookRotation(dir);
+                        sticker.transform.localScale = new Vector3(0.86f, 0.86f, 0.06f);
 
-                        _stickers[(f * _n + row) * _n + col] = quad.GetComponent<MeshRenderer>();
+                        _stickers[(f * _n + row) * _n + col] = sticker.GetComponent<MeshRenderer>();
                     }
         }
 
