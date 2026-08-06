@@ -230,6 +230,17 @@ namespace Cube.App
             _movesSinceScramble = Mathf.Max(0, _movesSinceScramble - 1);
         }
 
+        /// 밖에서 만든 상태를 그대로 실어 준다. 실물 큐브 색을 넣고 힌트를 받는 경로다.
+        public void LoadState(CubeState state)
+        {
+            if (state == null || state.N != _n) return;
+            ResetCube();
+            _rotator.FinishAllImmediately();
+            Renderer.Build(state);
+            _rotator.Init(Renderer);
+            _net.Refresh(Renderer.State);
+        }
+
         public void ResetCube()
         {
             _rotator.FinishAllImmediately();

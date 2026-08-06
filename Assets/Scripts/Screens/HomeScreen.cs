@@ -14,7 +14,7 @@ namespace Cube.App
         Action _onLearn;
 
         public void Build(RectTransform parent, Action<int> onPractice, Action onLearn,
-                          Action onRecords, Action onSettings)
+                          Action onColorInput, Action onRecords, Action onSettings)
         {
             _onLearn = onLearn;
             _p = ThemeService.Current;
@@ -43,16 +43,17 @@ namespace Cube.App
                 _sizeButtons[i] = btn;
             }
 
-            MakeMenuButton("연습 시작", 0.48f, () => onPractice?.Invoke(_size));
+            MakeMenuButton("연습 시작", 0.505f, () => onPractice?.Invoke(_size));
 
             var learn = UiKit.Button(transform, "Learn", "배우기", _p, OpenLearn);
-            UiKit.Stretch((RectTransform)learn.transform, new Vector2(0.08f, 0.37f), new Vector2(0.92f, 0.46f), Vector4.zero);
+            UiKit.Stretch((RectTransform)learn.transform, new Vector2(0.08f, 0.41f), new Vector2(0.92f, 0.49f), Vector4.zero);
 
-            MakeMenuButton("기록", 0.26f, () => onRecords?.Invoke());
-            MakeMenuButton("설정", 0.15f, () => onSettings?.Invoke());
+            MakeMenuButton("실물 큐브 넣기", 0.315f, () => onColorInput?.Invoke());
+            MakeMenuButton("기록", 0.22f, () => onRecords?.Invoke());
+            MakeMenuButton("설정", 0.125f, () => onSettings?.Invoke());
 
             _notice = UiKit.Label(transform, "Notice", "", 26, _p.TextSecondary);
-            UiKit.Stretch((RectTransform)_notice.transform, new Vector2(0f, 0.07f), new Vector2(1f, 0.13f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_notice.transform, new Vector2(0f, 0.05f), new Vector2(1f, 0.11f), Vector4.zero);
 
             RefreshSizeButtons();
         }
