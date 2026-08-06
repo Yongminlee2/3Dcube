@@ -84,11 +84,73 @@ namespace Cube.App
             _pad.Build(padRoot, _n, p, ApplyMove);
             _padRoot.SetActive(AppSettings.ShowPad);
 
+            // 힌트를 누르면 여기에 다음 수와 이유가 뜨고, 다시 누르면 그대로 둬 준다.
+            _hintButton = UiKit.Button(transform, "Hint", "", p, FollowHint);
+            UiKit.Stretch((RectTransform)_hintButton.transform,
+                new Vector2(0.03f, 0.095f), new Vector2(0.97f, 0.128f), Vector4.zero);
+            var hintLabel = _hintButton.GetComponentInChildren<Text>();
+            hintLabel.alignment = TextAnchor.MiddleLeft;
+            hintLabel.fontSize = 24;
+            UiKit.Stretch((RectTransform)hintLabel.transform, Vector2.zero, Vector2.one, new Vector4(20, 0, 20, 0));
+            _hintButton.gameObject.SetActive(false);
+
             var bar = UiKit.Panel(transform, "Bar", new Color(0, 0, 0, 0));
             UiKit.Stretch(bar, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.09f), Vector4.zero);
-            MakeBarButton(bar, "섞기", 0f, Scramble, p);
-            MakeBarButton(bar, "되돌리기", 0.34f, Undo, p);
-            MakeBarButton(bar, "초기화", 0.68f, ResetCube, p);
+            MakeBarButton(bar, "섞기", 0f, 0.235f, Scramble, p);
+            MakeBarButton(bar, "힌트", 0.255f, 0.235f, ShowHint, p);
+            MakeBarButton(bar, "되돌리기", 0.51f, 0.235f, Undo, p);
+            MakeBarButton(bar, "초기화", 0.765f, 0.235f, ResetCube, p);
+        }
+
+        Button _hintButton;
+        Hint _hint;
+
+        /// 다음 수와 이유를 보여주고, 봐야 할 조각을 전개도에 강조한다.
+        public void ShowHint()
+        {
+            if (_n != 3)
+            {
+                SetHintText("힌트는 3×3에서만 됩니다.");
+                _hintButton.interactable = false;
+                return;
+            }
+
+            _hint = HintEngine.Next(Renderer.State);
+            _net.ClearHighlights();
+
+            if (_hint.IsSolved)
+            {
+                SetHintText(_hint.Reason);
+                _hintButton.interactable = false;
+            }
+            else
+            {
+                foreach (var (face, row, col) in HintEngine.PendingCells(Renderer.State, _hint.Stage))
+                    _net.SetHighlight(face, row, col, ThemeService.Current.Accent);
+
+                SetHintText(_hint.HasMove
+                    ? $"▶  {_hint.Notation}      {_hint.Reason}"
+                    : _hint.Reason);
+                _hintButton.interactable = _hint.HasMove;
+            }
+            _net.Refresh(Renderer.State);
+        }
+
+        /// 힌트 줄을 누르면 그 수를 대신 둬 준다.
+        public void FollowHint()
+        {
+            if (!_hint.HasMove) return;
+            _rotator.EnqueueRange(MoveNotation.Parse(_hint.Notation, _n));
+            _hint = default;
+            _net.ClearHighlights();
+            _net.Refresh(Renderer.State);
+            _hintButton.gameObject.SetActive(false);
+        }
+
+        void SetHintText(string text)
+        {
+            _hintButton.gameObject.SetActive(true);
+            _hintButton.GetComponentInChildren<Text>().text = text;
         }
 
         static T GetOrAdd<T>(GameObject go) where T : Component
@@ -97,12 +159,13 @@ namespace Cube.App
             return c != null ? c : go.AddComponent<T>();
         }
 
-        void MakeBarButton(RectTransform bar, string label, float xMin, Action action, Palette p)
+        void MakeBarButton(RectTransform bar, string label, float xMin, float width, Action action, Palette p)
         {
             var btn = UiKit.Button(bar, $"Bar_{label}", label, p, () => action());
+            btn.GetComponentInChildren<Text>().fontSize = 28;
             var rt = (RectTransform)btn.transform;
             rt.anchorMin = new Vector2(xMin, 0f);
-            rt.anchorMax = new Vector2(xMin + 0.32f, 1f);
+            rt.anchorMax = new Vector2(xMin + width, 1f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
         }
@@ -182,7 +245,11 @@ namespace Cube.App
             if (_scrambleLabel != null) _scrambleLabel.text = "";
             _armed = false;
             Timer.Reset();
-            if (_net != null) _net.Refresh(Renderer.State);
+
+            // 큐브가 바뀌면 들고 있던 힌트는 더 이상 맞지 않는다.
+            _hint = default;
+            if (_hintButton != null) _hintButton.gameObject.SetActive(false);
+            if (_net != null) { _net.ClearHighlights(); _net.Refresh(Renderer.State); }
         }
 
         void Update()

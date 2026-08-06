@@ -292,6 +292,79 @@ namespace Cube.Core
             }
         }
 
+        /// 지금 단계에서 아직 자리를 못 잡은 칸들. 전개도에 강조해 "여기를 보세요"를 표현한다.
+        /// 이미 맞은 조각은 돌려주지 않는다 — 다 강조하면 아무것도 강조하지 않은 것과 같다.
+        public static IReadOnlyList<(Face face, int row, int col)> PendingCells(CubeState s, int stage)
+        {
+            var cells = new List<(Face, int, int)>();
+            if (s == null || s.N != 3) return cells;
+
+            switch (stage)
+            {
+                case 1:
+                    AddEdgeIfWrong(s, cells, Face.D, 0, 1, Face.F, 2, 1);
+                    AddEdgeIfWrong(s, cells, Face.D, 1, 2, Face.R, 2, 1);
+                    AddEdgeIfWrong(s, cells, Face.D, 2, 1, Face.B, 2, 1);
+                    AddEdgeIfWrong(s, cells, Face.D, 1, 0, Face.L, 2, 1);
+                    break;
+
+                case 2:
+                    AddCornerIfWrong(s, cells, Face.D, 0, 0, Face.F, 2, 0, Face.L, 2, 2);
+                    AddCornerIfWrong(s, cells, Face.D, 0, 2, Face.F, 2, 2, Face.R, 2, 0);
+                    AddCornerIfWrong(s, cells, Face.D, 2, 2, Face.R, 2, 2, Face.B, 2, 0);
+                    AddCornerIfWrong(s, cells, Face.D, 2, 0, Face.B, 2, 2, Face.L, 2, 0);
+                    break;
+
+                case 3:
+                    AddEdgeIfWrong(s, cells, Face.F, 1, 0, Face.L, 1, 2);
+                    AddEdgeIfWrong(s, cells, Face.F, 1, 2, Face.R, 1, 0);
+                    AddEdgeIfWrong(s, cells, Face.B, 1, 0, Face.R, 1, 2);
+                    AddEdgeIfWrong(s, cells, Face.B, 1, 2, Face.L, 1, 0);
+                    break;
+
+                case 4:
+                case 5:
+                    // 위 면에서 아직 그 면 색이 아닌 칸
+                    for (int r = 0; r < 3; r++)
+                        for (int c = 0; c < 3; c++)
+                        {
+                            bool edgeOnly = stage == 4 && (r + c) % 2 == 0;   // 4단계는 십자만 본다
+                            if (edgeOnly) continue;
+                            if (s.Get(Face.U, r, c) != C(s, Face.U)) cells.Add((Face.U, r, c));
+                        }
+                    break;
+
+                case 6:
+                case 7:
+                    // 옆면 맨 윗줄에서 센터와 어긋난 칸
+                    foreach (var f in new[] { Face.F, Face.R, Face.B, Face.L })
+                        for (int c = 0; c < 3; c++)
+                        {
+                            if (stage == 6 && c == 1) continue;   // 6단계는 모서리만 본다
+                            if (s.Get(f, 0, c) != C(s, f)) cells.Add((f, 0, c));
+                        }
+                    break;
+            }
+            return cells;
+        }
+
+        static void AddEdgeIfWrong(CubeState s, List<(Face, int, int)> cells,
+                                   Face a, int ar, int ac, Face b, int br, int bc)
+        {
+            if (s.Get(a, ar, ac) == C(s, a) && s.Get(b, br, bc) == C(s, b)) return;
+            cells.Add((a, ar, ac));
+            cells.Add((b, br, bc));
+        }
+
+        static void AddCornerIfWrong(CubeState s, List<(Face, int, int)> cells,
+                                     Face a, int ar, int ac, Face b, int br, int bc, Face d, int dr, int dc)
+        {
+            if (Ok(s, a, ar, ac, b, br, bc, d, dr, dc)) return;
+            cells.Add((a, ar, ac));
+            cells.Add((b, br, bc));
+            cells.Add((d, dr, dc));
+        }
+
         static byte C(CubeState s, Face f) => s.Get(f, 1, 1);
 
         static int CountBottomCrossEdges(CubeState s)
