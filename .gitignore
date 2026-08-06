@@ -54,3 +54,7 @@ Desktop.ini
 
 # 빌드 로그
 /build.log
+
+# 갱신 로그
+/refresh.log
+/TestResults-Diag.xml

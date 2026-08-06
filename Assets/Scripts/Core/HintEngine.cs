@@ -85,9 +85,39 @@ namespace Cube.Core
             return new Hint(target, alg, $"{lesson.Title} — 공식을 쓴 뒤 다시 살펴보세요.");
         }
 
+        /// 탐색이 실제로 무엇을 찾는지 밖에서 볼 수 있게 열어 둔다.
+        /// 힌트가 수렴하지 않을 때 원인을 눈으로 확인하는 통로다.
+        public static bool TryFindStageSequence(CubeState state, int target, int maxDepth,
+                                                out string sequence, out int depthUsed)
+        {
+            var alphabet = target >= 4
+                ? WithSetups(LessonData.Get(target).Algorithms)
+                : Alphabet(target);
+
+            var work = state.Clone();
+            var tokens = new List<string>();
+
+            for (int depth = 1; depth <= maxDepth; depth++)
+            {
+                tokens.Clear();
+                if (SearchToStage(work, target, alphabet, depth, tokens))
+                {
+                    tokens.Reverse();
+                    sequence = string.Join(" ", tokens);
+                    depthUsed = depth;
+                    return true;
+                }
+            }
+
+            sequence = "";
+            depthUsed = -1;
+            return false;
+        }
+
         static bool SearchToStage(CubeState s, int target, Token[] alphabet, int depth, List<string> tokens)
         {
-            if (StageChecker.CurrentStage(s) >= target) return true;
+            // CurrentStage는 1~7단계를 전부 재검사한다. 목표 하나만 보면 대여섯 배 싸다.
+            if (StageChecker.Passed(s, target)) return true;
             if (depth == 0) return false;
 
             foreach (var token in alphabet)
