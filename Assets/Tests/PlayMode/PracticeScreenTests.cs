@@ -18,6 +18,8 @@ namespace Cube.App.Tests
         {
             ThemeService.Init();
             AppSettings.AnimationMs = 0;          // 테스트에서는 애니메이션을 끈다
+            AppBootstrap.StorePathOverride =
+                System.IO.Path.Combine(Application.temporaryCachePath, "practice-test.json");
             _boot = new GameObject("AppBootstrap");
             _boot.AddComponent<AppBootstrap>();
             _root = new GameObject("Root", typeof(RectTransform), typeof(Canvas));
@@ -29,6 +31,7 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             AppSettings.AnimationMs = 120;
+            AppBootstrap.StorePathOverride = null;
             if (_screen != null) Object.DestroyImmediate(_screen.gameObject);
             if (_root != null) Object.DestroyImmediate(_root);
             if (_boot != null) Object.DestroyImmediate(_boot);

@@ -7,9 +7,14 @@ namespace Cube.App
     {
         public static AppBootstrap Instance { get; private set; }
 
+        /// 테스트가 진짜 저장 경로를 건드리지 않게 하는 통로. 평소에는 null이다.
+        public static string StorePathOverride;
+
         public Camera CubeCamera { get; private set; }
         public Canvas UiCanvas { get; private set; }
         public Transform CubeRoot { get; private set; }
+        public SessionStore Store { get; private set; }
+        public ScreenRouter Router { get; private set; }
 
         void Awake()
         {
@@ -24,6 +29,11 @@ namespace Cube.App
 
             ThemeService.Changed += OnThemeChanged;
             OnThemeChanged(ThemeService.Current);
+
+            Store = new SessionStore(StorePathOverride);
+            Store.Load();
+            Router = gameObject.AddComponent<ScreenRouter>();
+            Router.Build(UiCanvas, Store);
         }
 
         void OnDestroy()

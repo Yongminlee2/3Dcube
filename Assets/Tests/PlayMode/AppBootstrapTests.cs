@@ -11,10 +11,20 @@ namespace Cube.App.Tests
         GameObject _go;
 
         [SetUp]
-        public void SetUp() { _go = new GameObject("AppBootstrap"); }
+        public void SetUp()
+        {
+            // 부트스트랩이 진짜 기록 파일을 건드리지 않게 한다.
+            AppBootstrap.StorePathOverride =
+                System.IO.Path.Combine(Application.temporaryCachePath, "boot-test.json");
+            _go = new GameObject("AppBootstrap");
+        }
 
         [TearDown]
-        public void TearDown() { if (_go != null) Object.DestroyImmediate(_go); }
+        public void TearDown()
+        {
+            AppBootstrap.StorePathOverride = null;
+            if (_go != null) Object.DestroyImmediate(_go);
+        }
 
         [UnityTest]
         public IEnumerator 부트스트랩이_카메라와_캔버스와_큐브뿌리를_만든다()
