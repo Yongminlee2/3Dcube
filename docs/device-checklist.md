@@ -54,7 +54,6 @@ TEMP="C:/workAndroid/tmp-ascii" TMP="C:/workAndroid/tmp-ascii" GRADLE_USER_HOME=
 - [ ] 기록 화면에 최고·ao5·ao12가 맞게 나온다
 - [ ] 앱을 껐다 켜도 기록이 남아 있다
 - [ ] 설정 변경이 저장되고 다시 켜도 유지된다
-- [ ] 홈의 [배우기]를 누르면 "준비 중" 안내만 뜬다
 
 ## 학습 모드 (Phase B)
 
