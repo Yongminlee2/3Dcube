@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Cube.App
 {
-    public enum ScreenId { Home, Practice, Records, Settings }
+    public enum ScreenId { Home, Practice, Records, Settings, Learn, Lesson, Library }
 
     /// 씬을 새로 읽지 않고 패널만 켜고 끈다. 큐브를 다시 만들지 않아도 되고 전환이 즉각적이다.
     public sealed class ScreenRouter : MonoBehaviour
@@ -10,6 +10,9 @@ namespace Cube.App
         public ScreenId Current { get; private set; } = ScreenId.Home;
         public PracticeScreen Practice { get; private set; }
         public RecordsScreen Records { get; private set; }
+        public LearnScreen Learn { get; private set; }
+        public LessonScreen Lesson { get; private set; }
+        public AlgorithmScreen Library { get; private set; }
         public SessionStore Store { get; private set; }
 
         HomeScreen _home;
@@ -22,7 +25,8 @@ namespace Cube.App
             _canvasRect = (RectTransform)canvas.transform;
 
             _home = new GameObject("HomeScreen").AddComponent<HomeScreen>();
-            _home.Build(_canvasRect, StartPractice, () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
+            _home.Build(_canvasRect, StartPractice, () => Go(ScreenId.Learn),
+                        () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
 
             Records = new GameObject("RecordsScreen").AddComponent<RecordsScreen>();
             Records.Build(_canvasRect, store);
@@ -30,7 +34,23 @@ namespace Cube.App
             _settings = new GameObject("SettingsScreen").AddComponent<SettingsScreen>();
             _settings.Build(_canvasRect, () => Go(ScreenId.Home));
 
+            Learn = new GameObject("LearnScreen").AddComponent<LearnScreen>();
+            Learn.Build(_canvasRect, OpenLesson, () => Go(ScreenId.Library), () => Go(ScreenId.Home));
+
+            Lesson = new GameObject("LessonScreen").AddComponent<LessonScreen>();
+            Lesson.Build(_canvasRect, () => Go(ScreenId.Learn));
+
+            Library = new GameObject("AlgorithmScreen").AddComponent<AlgorithmScreen>();
+            Library.Build(_canvasRect, () => Go(ScreenId.Learn));
+
             Go(ScreenId.Home);
+        }
+
+        /// 학습 홈에서 단계를 고르면 부른다.
+        public void OpenLesson(int stage)
+        {
+            Lesson.Open(stage);
+            Go(ScreenId.Lesson);
         }
 
         /// 홈에서 부르고, 테스트도 이 입구로 연습 화면을 연다.
@@ -67,13 +87,18 @@ namespace Cube.App
             if (Practice != null) Practice.gameObject.SetActive(id == ScreenId.Practice);
             if (Records != null) Records.gameObject.SetActive(id == ScreenId.Records);
             if (_settings != null) _settings.gameObject.SetActive(id == ScreenId.Settings);
+            if (Learn != null) Learn.gameObject.SetActive(id == ScreenId.Learn);
+            if (Lesson != null) Lesson.gameObject.SetActive(id == ScreenId.Lesson);
+            if (Library != null) Library.gameObject.SetActive(id == ScreenId.Library);
 
-            // 큐브는 연습 화면에서만 보인다.
+            // 큐브는 큐브를 쓰는 화면에서만 보인다.
+            bool cubeVisible = id == ScreenId.Practice || id == ScreenId.Lesson || id == ScreenId.Library;
             if (AppBootstrap.Instance != null && AppBootstrap.Instance.CubeRoot != null)
-                AppBootstrap.Instance.CubeRoot.gameObject.SetActive(id == ScreenId.Practice);
+                AppBootstrap.Instance.CubeRoot.gameObject.SetActive(cubeVisible);
 
             if (id == ScreenId.Records) Records.Show(AppSettings.CubeSize);
             if (id == ScreenId.Settings) _settings.RefreshLabels();
+            if (id == ScreenId.Learn) Learn.Refresh();   // 진도가 바뀌었을 수 있다
         }
 
         void Update()
