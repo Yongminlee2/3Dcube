@@ -1,8 +1,9 @@
 using UnityEngine;
+using Cube.Core;
 
 namespace Cube.App
 {
-    public enum ScreenId { Home, Practice, Records, Settings, Learn, Lesson, Library }
+    public enum ScreenId { Home, Practice, Records, Settings, Learn, Lesson, Library, ColorInput }
 
     /// 씬을 새로 읽지 않고 패널만 켜고 끈다. 큐브를 다시 만들지 않아도 되고 전환이 즉각적이다.
     public sealed class ScreenRouter : MonoBehaviour
@@ -13,6 +14,7 @@ namespace Cube.App
         public LearnScreen Learn { get; private set; }
         public LessonScreen Lesson { get; private set; }
         public AlgorithmScreen Library { get; private set; }
+        public ColorInputScreen ColorInput { get; private set; }
         public SessionStore Store { get; private set; }
 
         HomeScreen _home;
@@ -26,6 +28,7 @@ namespace Cube.App
 
             _home = new GameObject("HomeScreen").AddComponent<HomeScreen>();
             _home.Build(_canvasRect, StartPractice, () => Go(ScreenId.Learn),
+                        () => Go(ScreenId.ColorInput),
                         () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
 
             Records = new GameObject("RecordsScreen").AddComponent<RecordsScreen>();
@@ -42,6 +45,9 @@ namespace Cube.App
 
             Library = new GameObject("AlgorithmScreen").AddComponent<AlgorithmScreen>();
             Library.Build(_canvasRect, () => Go(ScreenId.Learn));
+
+            ColorInput = new GameObject("ColorInputScreen").AddComponent<ColorInputScreen>();
+            ColorInput.Build(_canvasRect, AcceptRealCube, () => Go(ScreenId.Home));
 
             Go(ScreenId.Home);
         }
@@ -68,6 +74,14 @@ namespace Cube.App
             Go(ScreenId.Practice);
         }
 
+        /// 손으로 넣은 실물 큐브를 연습 화면에 실어 준다. 거기서 힌트를 받을 수 있다.
+        void AcceptRealCube(CubeState state)
+        {
+            AppSettings.CubeSize = 3;
+            StartPractice(3);
+            Practice.LoadState(state);
+        }
+
         void OnSolved(double ms, string scramble, int moves)
         {
             Store.Add(AppSettings.CubeSize, new SolveRecord
@@ -90,6 +104,7 @@ namespace Cube.App
             if (Learn != null) Learn.gameObject.SetActive(id == ScreenId.Learn);
             if (Lesson != null) Lesson.gameObject.SetActive(id == ScreenId.Lesson);
             if (Library != null) Library.gameObject.SetActive(id == ScreenId.Library);
+            if (ColorInput != null) ColorInput.gameObject.SetActive(id == ScreenId.ColorInput);
 
             // 큐브는 큐브를 쓰는 화면에서만 보인다.
             bool cubeVisible = id == ScreenId.Practice || id == ScreenId.Lesson || id == ScreenId.Library;
