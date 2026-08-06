@@ -32,9 +32,40 @@ namespace Cube.Core
             return result;
         }
 
+        /// 큐브 전체 회전. 상태의 "풀린 정도"는 바꾸지 않고 방향만 돌린다.
+        /// x는 R 방향, y는 U 방향, z는 F 방향이다.
+        static bool TryWholeCube(string token, int n, out List<Move> moves)
+        {
+            moves = null;
+            if (token.Length < 1) return false;
+
+            Axis axis;
+            switch (token[0])
+            {
+                case 'x': axis = Axis.X; break;
+                case 'y': axis = Axis.Y; break;
+                case 'z': axis = Axis.Z; break;
+                default: return false;
+            }
+
+            int turns = 1;
+            if (token.Length == 2)
+            {
+                if (token[1] == '\'') turns = 3;
+                else if (token[1] == '2') turns = 2;
+                else throw new FormatException($"모르는 수식어: '{token}'");
+            }
+            else if (token.Length > 2) throw new FormatException($"남는 글자가 있다: '{token}'");
+
+            moves = new List<Move>(n);
+            for (int layer = 0; layer < n; layer++) moves.Add(new Move(axis, layer, turns));
+            return true;
+        }
+
         public static List<Move> ParseToken(string token, int n)
         {
             if (string.IsNullOrEmpty(token)) throw new FormatException("빈 토큰");
+            if (TryWholeCube(token, n, out var whole)) return whole;
 
             int i = 0;
             int depth = 0;
