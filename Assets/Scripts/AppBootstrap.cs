@@ -69,7 +69,9 @@ namespace Cube.App
         }
 
         /// 3칸 큐브의 대각선에 여유를 더한 값.
-        const float CubeHalfExtent = 2.7f;
+        // 3칸 큐브의 대각선 절반이 2.6쯤이다. 그 값을 그대로 쓰면 큐브가 화면 폭에
+        // 딱 붙어 답답하고 스크램블 글자와 겹친다. 여유를 붙여 잡는다.
+        const float CubeHalfExtent = 3.3f;
 
         /// 큐브 중심을 화면 중앙에서 위로 얼마나 올릴지 (보이는 높이에 대한 비율).
         const float CubeLiftRatio = 0.22f;
@@ -101,8 +103,14 @@ namespace Cube.App
             go.transform.SetParent(transform, false);
             var light = go.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 1.1f;
+            light.intensity = 0.32f;
             light.transform.rotation = Quaternion.Euler(38f, -34f, 0f);
+
+            // 거의 평평하게 비춘다. 방향광을 세게 주면 빛을 등진 면이 어두워져
+            // 초록이 검게, 주황이 갈색으로 보인다. 큐브는 색을 보고 푸는 물건이라
+            // 면마다 색이 달라 보이면 안 된다. 입체감은 큐비 사이 검은 틈이 낸다.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.88f, 0.88f, 0.90f);
         }
 
         Canvas BuildCanvas()
