@@ -71,7 +71,9 @@ namespace Cube.App
             DestroyNow(go.GetComponent<Collider>());
             go.transform.SetParent(transform, false);
             go.transform.localPosition = GridToLocal(x, y, z);
-            go.transform.localScale = Vector3.one * (CubieSize * 0.96f);
+            // 큐비끼리 딱 붙여 한 덩어리로 보이게 한다. 0.96처럼 줄여 두면
+            // 사이가 벌어져서, 층이 돌 때 아홉 조각이 따로 노는 것처럼 보인다.
+            go.transform.localScale = Vector3.one * (CubieSize * 0.998f);
             go.GetComponent<MeshRenderer>().sharedMaterial = _bodyMaterial;
 
             // 손가락 판정은 큐비 단위로 한다. 스티커마다 콜라이더를 두지 않는다.
@@ -106,11 +108,11 @@ namespace Cube.App
 
                         // 법선도 Z를 뒤집어 Unity 방향으로 옮긴다.
                         var dir = new Vector3(p.NX, p.NY, -p.NZ);
-                        // 두께의 절반(0.03)만큼 몸통 바깥으로 밀어낸다. 딱 0.5에 두면
-                        // 몸통 표면과 겹쳐 z-파이팅이 나서 스티커가 군데군데 사라진다.
-                        sticker.transform.localPosition = dir * 0.53f;
+                        // 몸통 표면(0.5)에 얇게 얹는다. 두께의 절반만큼 밖으로 밀어
+                        // z-파이팅을 피하되, 떠 보이지 않을 만큼만 띄운다.
+                        sticker.transform.localPosition = dir * 0.508f;
                         sticker.transform.localRotation = Quaternion.LookRotation(dir);
-                        sticker.transform.localScale = new Vector3(0.86f, 0.86f, 0.06f);
+                        sticker.transform.localScale = new Vector3(0.9f, 0.9f, 0.02f);
 
                         _stickers[(f * _n + row) * _n + col] = sticker.GetComponent<MeshRenderer>();
                     }

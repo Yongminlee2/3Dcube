@@ -126,7 +126,7 @@ namespace Cube.App
             pivot.SetParent(_renderer.transform, false);
 
             Vector3 axis = CubeRenderer.UnityAxis(p.Move.Axis);
-            float total = 90f * p.Move.Turns;
+            float total = TotalAngle(p.Move);
 
             pivot.localRotation = Quaternion.AngleAxis(p.StartAngle, axis);
             foreach (var t in p.Cubies) if (t != null) t.SetParent(pivot, true);
@@ -149,6 +149,13 @@ namespace Cube.App
             pivot.SetParent(null, false);
             Destroy(pivot.gameObject);
         }
+
+        /// 눈에 보이는 회전각. 반시계(turns=3)는 +270°가 아니라 −90°로 돌린다.
+        ///
+        /// 둘은 끝 자세가 같지만 가는 길이 다르다. +270°로 돌리면 손가락이 끌던
+        /// 방향과 반대로 먼 길을 돌아가서, 손을 떼는 순간 큐브가 뒤로 튄다.
+        /// 실기기에서 "돌다가 멈추고 이상하다"로 나타났다.
+        public static float TotalAngle(Move m) => m.Turns == 3 ? -90f : 90f * m.Turns;
 
         /// 트랜스폼을 마커가 가리키는 정확한 자리와 직각 자세로 붙인다.
         /// 90° 회전을 거듭하면 부동소수점 오차가 쌓이므로 매번 눌러준다.

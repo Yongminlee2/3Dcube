@@ -147,8 +147,9 @@ namespace Cube.App
             _pivot.localRotation = Quaternion.AngleAxis(_angle, CubeRenderer.UnityAxis(_move.Axis));
         }
 
-        /// turns=1은 +90도 방향, turns=3은 -90도 방향이다.
-        float SignOfMove() => _move.Turns == 1 ? 1f : -1f;
+        /// 미리보기가 도는 방향. LayerRotator가 실제로 돌릴 각도와 부호를 맞춰야
+        /// 손을 뗄 때 큐브가 튀지 않는다.
+        float SignOfMove() => Mathf.Sign(LayerRotator.TotalAngle(_move));
 
         void End()
         {
