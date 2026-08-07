@@ -175,14 +175,45 @@ namespace Cube.App
 
         static Quaternion SnapToRightAngle(Quaternion q)
         {
-            Vector3 f = RoundAxis(q * Vector3.forward);
-            Vector3 u = RoundAxis(q * Vector3.up);
+            Vector3 f = NearestAxis(q * Vector3.forward, -1);
+            int forwardAxis = DominantAxis(f);
+            Vector3 u = NearestAxis(q * Vector3.up, forwardAxis);
             if (f == Vector3.zero || u == Vector3.zero) return Quaternion.identity;
             return Quaternion.LookRotation(f, u);
         }
 
-        static Vector3 RoundAxis(Vector3 v)
-            => new Vector3(Mathf.Round(v.x), Mathf.Round(v.y), Mathf.Round(v.z));
+        /// 방향을 가장 가까운 축(±X, ±Y, ±Z) 하나로 붙인다.
+        ///
+        /// 성분별로 반올림하면 안 된다. 30도쯤 돌아간 방향 (0.5, 0, 0.87)은
+        /// (1, 0, 1)이 되어 축이 아닌 대각선이 나오고, 큐비가 45도 틀어진 채 굳는다.
+        /// 드래그를 중간에 멈췄을 때 큐브가 깨져 보이던 원인이다.
+        ///
+        /// exclude에 축 번호를 주면 그 축은 고르지 않는다 —
+        /// 앞 방향과 위 방향이 같은 축으로 붙으면 자세를 만들 수 없다.
+        static Vector3 NearestAxis(Vector3 v, int exclude)
+        {
+            float best = -1f;
+            int axis = -1;
+            for (int i = 0; i < 3; i++)
+            {
+                if (i == exclude) continue;
+                float m = Mathf.Abs(v[i]);
+                if (m > best) { best = m; axis = i; }
+            }
+            if (axis < 0) return Vector3.zero;
+
+            var result = Vector3.zero;
+            result[axis] = v[axis] >= 0f ? 1f : -1f;
+            return result;
+        }
+
+        static int DominantAxis(Vector3 axisVector)
+        {
+            if (axisVector.x != 0f) return 0;
+            if (axisVector.y != 0f) return 1;
+            if (axisVector.z != 0f) return 2;
+            return -1;
+        }
 
         public void FinishAllImmediately()
         {

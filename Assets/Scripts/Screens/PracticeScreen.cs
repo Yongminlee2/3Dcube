@@ -85,6 +85,14 @@ namespace Cube.App
             _net.Build(_n);
             _net.Refresh(Renderer.State);
 
+            // 전개도를 접을 수 있게 한다. 화면이 좁으면 거슬린다는 의견이 있었다.
+            _netToggle = UiKit.Button(transform, "NetToggle", "", p, ToggleNet);
+            UiKit.Stretch((RectTransform)_netToggle.transform,
+                new Vector2(0.72f, 0.505f), new Vector2(0.97f, 0.555f), Vector4.zero);
+            _netToggle.GetComponentInChildren<Text>().fontSize = 24;
+            _net.Expanded = AppSettings.ShowNet;
+            RefreshNetToggle();
+
             var padRoot = UiKit.Panel(transform, "Pad", new Color(0, 0, 0, 0));
             UiKit.Stretch(padRoot, new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.255f), Vector4.zero);
             _padRoot = padRoot.gameObject;
@@ -111,7 +119,21 @@ namespace Cube.App
         }
 
         Button _hintButton;
+        Button _netToggle;
         Hint _hint;
+
+        void ToggleNet()
+        {
+            AppSettings.ShowNet = !AppSettings.ShowNet;
+            _net.Expanded = AppSettings.ShowNet;
+            RefreshNetToggle();
+        }
+
+        void RefreshNetToggle()
+        {
+            if (_netToggle == null) return;
+            _netToggle.GetComponentInChildren<Text>().text = AppSettings.ShowNet ? "전개도 접기" : "전개도 펴기";
+        }
 
         /// 다음 수와 이유를 보여주고, 봐야 할 조각을 전개도에 강조한다.
         public void ShowHint()

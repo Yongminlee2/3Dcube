@@ -6,7 +6,7 @@ namespace Cube.App
 {
     public sealed class SettingsScreen : MonoBehaviour
     {
-        static readonly int[] SpeedSteps = { 0, 60, 120, 200, 250 };
+        static readonly int[] SpeedSteps = { 0, 120, 220, 320, 400 };
 
         Palette _p;
         Button _theme, _inspection, _pad, _speed;

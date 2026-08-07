@@ -15,7 +15,7 @@ namespace Cube.App
         OrbitCamera _orbit;
         TouchInputSettings _settings;
 
-        enum Mode { Idle, Undecided, Rotating, Orbiting }
+        enum Mode { Idle, Undecided, Rotating, Orbiting, TwoFinger }
         Mode _mode = Mode.Idle;
 
         Vector2 _startPos, _lastPos;
@@ -39,9 +39,51 @@ namespace Cube.App
         {
             if (!Enabled || _cam == null || _renderer == null || _renderer.State == null) return;
 
+            // 두 손가락은 언제나 시점 조정이다. 큐브가 화면을 거의 채우고 있어서
+            // 배경을 끌 자리가 좁고, 그래서 밑면으로 돌리기가 어려웠다.
+            if (Input.touchCount >= 2)
+            {
+                if (_mode != Mode.TwoFinger) { CancelDrag(); _mode = Mode.TwoFinger; }
+                var delta = (Input.GetTouch(0).deltaPosition + Input.GetTouch(1).deltaPosition) * 0.5f;
+                _orbit.Orbit(delta);
+                return;
+            }
+
+            if (_mode == Mode.TwoFinger)
+            {
+                // 손가락을 다 뗄 때까지는 새 드래그를 시작하지 않는다.
+                if (Input.touchCount == 0) _mode = Mode.Idle;
+                return;
+            }
+
             if (Input.GetMouseButtonDown(0)) Begin(Input.mousePosition);
             else if (Input.GetMouseButton(0) && _mode != Mode.Idle) Drag(Input.mousePosition);
             else if (Input.GetMouseButtonUp(0) && _mode != Mode.Idle) End();
+        }
+
+        /// 돌리던 것을 없던 일로 하고 큐비를 원래 자세로 돌려놓는다.
+        void CancelDrag()
+        {
+            if (_pivot != null) ReleasePivot(toIdentity: true);
+            _mode = Mode.Idle;
+            _angle = 0f;
+        }
+
+        /// 미리보기 피벗을 걷어내고 큐비를 큐브 뿌리로 되돌린다.
+        ///
+        /// toIdentity면 피벗을 0도로 되돌린 뒤 떼어낸다. 비스듬한 자세로 떼어낸 다음
+        /// 각도를 반올림해 맞추려 하면 엉뚱한 자세가 나와 큐브가 깨진다.
+        void ReleasePivot(bool toIdentity)
+        {
+            if (_pivot == null) return;
+            if (toIdentity) _pivot.localRotation = Quaternion.identity;
+
+            for (int i = _pivot.childCount - 1; i >= 0; i--)
+                _pivot.GetChild(i).SetParent(_renderer.transform, true);
+
+            _pivot.SetParent(null, false);
+            Destroy(_pivot.gameObject);
+            _pivot = null;
         }
 
         void Begin(Vector2 screenPos)
@@ -158,15 +200,11 @@ namespace Cube.App
                 float snap = _settings != null ? _settings.SnapAngle : 45f;
                 bool commit = Mathf.Abs(_angle) >= snap;
 
-                // 미리보기 피벗을 걷어내되, 큐비는 지금 자세 그대로 둔다.
-                for (int i = _pivot.childCount - 1; i >= 0; i--)
-                    _pivot.GetChild(i).SetParent(_renderer.transform, true);
-                _pivot.SetParent(null, false);
-                Destroy(_pivot.gameObject);
-                _pivot = null;
+                // 넘겼으면 지금 자세 그대로 두고 이어서 돌리고,
+                // 못 넘겼으면 피벗을 0도로 되돌려 원래 자세를 정확히 복원한다.
+                ReleasePivot(toIdentity: !commit);
 
                 if (commit) _rotator.EnqueueFromAngle(_move, _angle);
-                else _rotator.SnapAll();   // 못 미쳤으면 되돌린다
             }
 
             _mode = Mode.Idle;
