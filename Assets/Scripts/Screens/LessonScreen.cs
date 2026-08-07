@@ -20,7 +20,7 @@ namespace Cube.App
         LessonPlayer _player;
 
         Text _title, _body, _pageLabel, _status;
-        Button _prev, _next, _practice, _rewind;
+        Button _prev, _next, _practice, _hint, _rewind;
         Transform _algRoot;
         Lesson _lesson;
         int _page;
@@ -60,10 +60,13 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)_status.transform, new Vector2(0f, 0.145f), new Vector2(1f, 0.195f), Vector4.zero);
 
             _practice = UiKit.Button(transform, "Practice", "연습하기", _p, Practice);
-            UiKit.Stretch((RectTransform)_practice.transform, new Vector2(0.06f, 0.03f), new Vector2(0.48f, 0.115f), Vector4.zero);
+            UiKit.Stretch((RectTransform)_practice.transform, new Vector2(0.06f, 0.03f), new Vector2(0.34f, 0.115f), Vector4.zero);
 
-            _rewind = UiKit.Button(transform, "Rewind", "큐브 되돌리기", _p, ResetCube);
-            UiKit.Stretch((RectTransform)_rewind.transform, new Vector2(0.52f, 0.03f), new Vector2(0.94f, 0.115f), Vector4.zero);
+            _hint = UiKit.Button(transform, "Hint", "힌트", _p, ShowHint);
+            UiKit.Stretch((RectTransform)_hint.transform, new Vector2(0.36f, 0.03f), new Vector2(0.64f, 0.115f), Vector4.zero);
+
+            _rewind = UiKit.Button(transform, "Rewind", "되돌리기", _p, ResetCube);
+            UiKit.Stretch((RectTransform)_rewind.transform, new Vector2(0.66f, 0.03f), new Vector2(0.94f, 0.115f), Vector4.zero);
 
             var back = UiKit.Button(transform, "Back", "목록", _p, () => onBack?.Invoke());
             UiKit.Stretch((RectTransform)back.transform, new Vector2(0.72f, 0.905f), new Vector2(0.96f, 0.965f), Vector4.zero);
@@ -156,6 +159,25 @@ namespace Cube.App
                 label.text = $"▶  {alg.Notation}      {alg.Name}";
                 UiKit.Stretch((RectTransform)label.transform, Vector2.zero, Vector2.one, new Vector4(24, 0, 24, 0));
             }
+        }
+
+        /// 지금 큐브 상태에서 다음 수를 알려준다.
+        /// 글로만 설명하면 "어디를 어떻게" 바꾸라는 건지 알기 어렵다는 의견이 있었다.
+        public void ShowHint()
+        {
+            if (_renderer == null || _renderer.State == null) return;
+
+            var hint = HintEngine.Next(_renderer.State);
+            if (hint.IsSolved) { _status.text = "이미 다 맞췄습니다."; return; }
+
+            if (!hint.HasMove)
+            {
+                _status.text = hint.Reason;
+                return;
+            }
+
+            _status.text = $"{hint.Notation}  —  {hint.Reason}";
+            _player.Play(hint.Notation);   // 큐브가 직접 돌려서 보여준다
         }
 
         void PlayAlgorithm(Algorithm alg)

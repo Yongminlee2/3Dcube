@@ -88,8 +88,10 @@ namespace Cube.App
             // 전개도를 접을 수 있게 한다. 화면이 좁으면 거슬린다는 의견이 있었다.
             _netToggle = UiKit.Button(transform, "NetToggle", "", p, ToggleNet);
             UiKit.Stretch((RectTransform)_netToggle.transform,
-                new Vector2(0.72f, 0.505f), new Vector2(0.97f, 0.555f), Vector4.zero);
-            _netToggle.GetComponentInChildren<Text>().fontSize = 24;
+                new Vector2(0.70f, 0.497f), new Vector2(0.94f, 0.541f), Vector4.zero);
+            var toggleLabel = _netToggle.GetComponentInChildren<Text>();
+            toggleLabel.fontSize = 22;
+            toggleLabel.color = ThemeService.Current.TextSecondary;
             _net.Expanded = AppSettings.ShowNet;
             RefreshNetToggle();
 

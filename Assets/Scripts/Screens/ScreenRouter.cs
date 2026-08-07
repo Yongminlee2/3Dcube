@@ -53,6 +53,37 @@ namespace Cube.App
             // 실기기에서 셰이더 예외로 Build가 중단됐을 때 정확히 그렇게 됐다.
             HideAll();
             Go(ScreenId.Home);
+
+            ThemeService.Changed -= OnThemeChanged;
+            ThemeService.Changed += OnThemeChanged;
+        }
+
+        void OnDestroy() { ThemeService.Changed -= OnThemeChanged; }
+
+        /// 테마가 바뀌면 화면을 다시 짓는다.
+        ///
+        /// 색은 만들 때 한 번 박히므로, 팔레트만 갈아 끼우면 배경만 밝아지고
+        /// 버튼은 어두운 채로 남아 글자가 보이지 않는다. 실기기에서 그랬다.
+        void OnThemeChanged(Palette p)
+        {
+            if (_canvasRect == null) return;
+
+            var wasOn = Current;
+            var store = Store;
+
+            for (int i = _canvasRect.childCount - 1; i >= 0; i--)
+            {
+                var child = _canvasRect.GetChild(i).gameObject;
+                child.transform.SetParent(null, false);
+                Destroy(child);
+            }
+
+            Practice = null;
+            Build(_canvasRect.GetComponent<Canvas>(), store);
+
+            // 연습·단계 화면은 큐브 상태에 매여 있어 그대로 되살릴 수 없다.
+            // 설정에서 바꾸는 것이니 설정에 남는 것이 자연스럽다.
+            Go(wasOn == ScreenId.Practice || wasOn == ScreenId.Lesson ? ScreenId.Settings : wasOn);
         }
 
         /// 학습 홈에서 단계를 고르면 부른다.

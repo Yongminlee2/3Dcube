@@ -59,6 +59,7 @@ namespace Cube.App
                     for (int col = 0; col < n; col++)
                     {
                         var cell = UiKit.Cell(faceRoot, $"{row}_{col}", p.StickerColors[(int)face]);
+                        cell.sprite = UiKit.RoundedSmall; cell.type = Image.Type.Sliced;
                         var crt = (RectTransform)cell.transform;
                         crt.anchorMin = new Vector2(col / (float)n, 1f - (row + 1) / (float)n);
                         crt.anchorMax = new Vector2((col + 1) / (float)n, 1f - row / (float)n);
