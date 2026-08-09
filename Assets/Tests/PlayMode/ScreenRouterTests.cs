@@ -3,6 +3,7 @@ using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Cube.App;
 
 namespace Cube.App.Tests
@@ -109,6 +110,63 @@ namespace Cube.App.Tests
             yield return null;
             TestColors.AssertSame(ThemeService.Current.Background,
                                   AppBootstrap.Instance.CubeCamera.backgroundColor);
+        }
+
+        [UnityTest]
+        public IEnumerator 기록_삭제_확인은_화면을_나가면_취소된다()
+        {
+            _router.Store.Add(3, new SolveRecord { DurationMs = 1234d });
+            _router.Go(ScreenId.Records);
+            yield return null;
+
+            Button clear = null;
+            foreach (var button in _router.Records.GetComponentsInChildren<Button>(true))
+                if (button.gameObject.name == "Clear") { clear = button; break; }
+            Assert.IsNotNull(clear);
+
+            clear.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(1, _router.Store.Records(3).Count);
+
+            _router.Go(ScreenId.Home);
+            yield return null;
+            _router.Go(ScreenId.Records);
+            yield return null;
+            clear.onClick.Invoke();
+            yield return null;
+
+            Assert.AreEqual(1, _router.Store.Records(3).Count,
+                "재진입 후 첫 탭은 삭제 확인만 다시 열어야 한다");
+        }
+
+        [UnityTest]
+        public IEnumerator 회전_중_연습을_나가도_다음_연습에서_입력이_멈추지_않는다()
+        {
+            AppSettings.AnimationMs = 250;
+            _router.StartPractice(3);
+            yield return null;
+
+            var rotator = AppBootstrap.Instance.CubeRoot.GetComponent<LayerRotator>();
+            _router.Practice.ApplyMove(new Cube.Core.Move(Cube.Core.Axis.X, 2, 1));
+            Assert.IsTrue(rotator.IsAnimating);
+
+            _router.Go(ScreenId.Home);
+            yield return null;
+            Assert.IsFalse(rotator.IsAnimating,
+                "CubeRoot를 숨기기 전에 회전 큐를 마무리해야 한다");
+
+            _router.StartPractice(3);
+            yield return null;
+            _router.Practice.ApplyMove(new Cube.Core.Move(Cube.Core.Axis.Z, 2, 1));
+
+            float elapsed = 0f;
+            while (rotator.IsAnimating && elapsed < 2f)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            Assert.IsFalse(rotator.IsAnimating,
+                "재진입 후 시작한 회전이 끝나지 않았다");
         }
     }
 }

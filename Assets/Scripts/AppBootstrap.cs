@@ -20,6 +20,7 @@ namespace Cube.App
         {
             Instance = this;
             ThemeService.Init();
+            SkinService.Init();
 
             CubeCamera = BuildCamera();
             BuildLight();
@@ -74,7 +75,7 @@ namespace Cube.App
         const float CubeHalfExtent = 3.3f;
 
         /// 큐브 중심을 화면 중앙에서 위로 얼마나 올릴지 (보이는 높이에 대한 비율).
-        const float CubeLiftRatio = 0.22f;
+        const float CubeLiftRatio = 0.18f;
 
         static float ScreenAspect()
             => Screen.height > 0 ? (float)Screen.width / Screen.height : 1f;
@@ -91,10 +92,16 @@ namespace Cube.App
 
         /// 큐브를 화면 위쪽으로 올린다. 아래쪽은 전개도와 버튼이 쓴다.
         void LiftCube()
+            => SetCubePresentation(1f, CubeLiftRatio);
+
+        public void SetCubePresentation(float scale, float liftRatio)
         {
+            if (CubeRoot == null || CubeCamera == null) return;
             float halfV = Mathf.Tan(CubeCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
             float visibleHalfHeight = CameraDistance(CubeCamera) * halfV;
-            CubeRoot.localPosition = new Vector3(0f, visibleHalfHeight * CubeLiftRatio * 2f, 0f);
+            CubeRoot.localScale = Vector3.one * Mathf.Clamp(scale, 0.45f, 1.15f);
+            CubeRoot.localPosition = new Vector3(0f,
+                visibleHalfHeight * Mathf.Clamp(liftRatio, 0f, 0.38f) * 2f, 0f);
         }
 
         void BuildLight()

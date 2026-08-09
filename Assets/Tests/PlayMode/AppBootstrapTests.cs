@@ -56,11 +56,11 @@ namespace Cube.App.Tests
         }
 
         [Test]
-        public void 팔레트에는_스티커_색이_여섯_개_있다()
+        public void 스킨에는_스티커_색이_여섯_개_있다()
         {
-            ThemeService.Init();
-            Assert.IsNotNull(ThemeService.Current, "팔레트를 못 불러왔다. Resources에 애셋이 있는지 확인할 것");
-            Assert.AreEqual(6, ThemeService.Current.StickerColors.Length);
+            SkinService.Init();
+            Assert.IsNotNull(SkinService.Current, "스킨을 못 불러왔다. Resources에 애셋이 있는지 확인할 것");
+            Assert.AreEqual(6, SkinService.Current.StickerColors.Length);
         }
 
         [Test]

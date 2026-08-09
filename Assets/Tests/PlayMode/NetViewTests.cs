@@ -48,11 +48,11 @@ namespace Cube.App.Tests
             _net.Refresh(state);
             yield return null;
 
-            var p = ThemeService.Current;
+            var skin = SkinService.Current;
             for (int f = 0; f < 6; f++)
                 for (int r = 0; r < 3; r++)
                     for (int c = 0; c < 3; c++)
-                        TestColors.AssertSame(p.StickerColors[state.Get((Face)f, r, c)],
+                        TestColors.AssertSame(skin.StickerColors[state.Get((Face)f, r, c)],
                                               _net.CellAt((Face)f, r, c).color, $"face={f} {r},{c}");
         }
 

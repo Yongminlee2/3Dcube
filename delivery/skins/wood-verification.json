@@ -1,0 +1,106 @@
+{
+  "dimensions": "512x512",
+  "maxFileBytes": 253014,
+  "representativeHex": {
+    "u": "#D5AE17",
+    "d": "#E9DFCB",
+    "f": "#248552",
+    "b": "#355DB7",
+    "l": "#D8691F",
+    "r": "#B82D39"
+  },
+  "pairChecks": [
+    {
+      "pair": "u-d",
+      "luminanceDiff": 0.2167,
+      "hueDiffDeg": 7.68,
+      "pass": true
+    },
+    {
+      "pair": "u-f",
+      "luminanceDiff": 0.2755,
+      "hueDiffDeg": 100.77,
+      "pass": true
+    },
+    {
+      "pair": "u-b",
+      "luminanceDiff": 0.3025,
+      "hueDiffDeg": 173.85,
+      "pass": true
+    },
+    {
+      "pair": "u-l",
+      "luminanceDiff": 0.1517,
+      "hueDiffDeg": 23.68,
+      "pass": true
+    },
+    {
+      "pair": "u-r",
+      "luminanceDiff": 0.3158,
+      "hueDiffDeg": 52.86,
+      "pass": true
+    },
+    {
+      "pair": "d-f",
+      "luminanceDiff": 0.4923,
+      "hueDiffDeg": 108.45,
+      "pass": true
+    },
+    {
+      "pair": "d-b",
+      "luminanceDiff": 0.5193,
+      "hueDiffDeg": 178.46,
+      "pass": true
+    },
+    {
+      "pair": "d-l",
+      "luminanceDiff": 0.3685,
+      "hueDiffDeg": 16.0,
+      "pass": true
+    },
+    {
+      "pair": "d-r",
+      "luminanceDiff": 0.5325,
+      "hueDiffDeg": 45.18,
+      "pass": true
+    },
+    {
+      "pair": "f-b",
+      "luminanceDiff": 0.027,
+      "hueDiffDeg": 73.08,
+      "pass": true
+    },
+    {
+      "pair": "f-l",
+      "luminanceDiff": 0.1238,
+      "hueDiffDeg": 124.45,
+      "pass": true
+    },
+    {
+      "pair": "f-r",
+      "luminanceDiff": 0.0402,
+      "hueDiffDeg": 153.63,
+      "pass": true
+    },
+    {
+      "pair": "b-l",
+      "luminanceDiff": 0.1508,
+      "hueDiffDeg": 162.46,
+      "pass": true
+    },
+    {
+      "pair": "b-r",
+      "luminanceDiff": 0.0132,
+      "hueDiffDeg": 133.28,
+      "pass": true
+    },
+    {
+      "pair": "l-r",
+      "luminanceDiff": 0.164,
+      "hueDiffDeg": 29.18,
+      "pass": true
+    }
+  ],
+  "allPairsPass": true,
+  "failedPairs": []
+}

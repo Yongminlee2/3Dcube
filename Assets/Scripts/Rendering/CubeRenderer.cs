@@ -40,7 +40,7 @@ namespace Cube.App
             _grid = new Transform[_n, _n, _n];
             _stickers = new MeshRenderer[Faces.Count * _n * _n];
 
-            var palette = ThemeService.Current;
+            var skin = SkinService.Current;
 
             // Resources의 머티리얼 애셋에서 복제한다. Shader.Find로 찾으면
             // 빌드에서 null이 나온다 — 어떤 애셋도 그 셰이더를 참조하지 않으면
@@ -50,10 +50,13 @@ namespace Cube.App
                 throw new MissingReferenceException(
                     "Assets/Resources/CubieMaterial.mat이 없다. ProjectSetup.CreateAssets를 돌릴 것");
 
-            _bodyMaterial = new Material(template) { color = palette.CubeBody };
+            _bodyMaterial = new Material(template) { color = skin.CubeBody };
             _stickerMaterials = new Material[6];
             for (int i = 0; i < 6; i++)
-                _stickerMaterials[i] = new Material(template) { color = palette.StickerColors[i] };
+            {
+                _stickerMaterials[i] = new Material(template);
+                ApplyStickerVisual(_stickerMaterials[i], skin, i);
+            }
 
             for (int x = 0; x < _n; x++)
                 for (int y = 0; y < _n; y++)
@@ -177,6 +180,45 @@ namespace Cube.App
             {
                 mk.X = x; mk.Y = y; mk.Z = z;
                 _grid[x, y, z] = mk.transform;
+            }
+        }
+
+        // 스킨 화면에서 실시간 미리보기가 되려면 큐브가 보이는 동안은 항상 구독돼 있어야
+        // 하고, 숨어 있다 다시 보일 때는 그사이 바뀐 스킨을 놓치지 않아야 한다.
+        void OnEnable()
+        {
+            SkinService.Changed -= ApplySkin;
+            SkinService.Changed += ApplySkin;
+            ApplySkin(SkinService.Current);
+        }
+
+        void OnDisable() => SkinService.Changed -= ApplySkin;
+
+        /// 큐비를 다시 짓지 않고 이미 만든 머티리얼 색만 바꾼다. Build보다 훨씬 가볍다.
+        void ApplySkin(Skin skin)
+        {
+            if (_bodyMaterial == null || _stickerMaterials == null || skin == null) return;
+            _bodyMaterial.color = skin.CubeBody;
+            for (int i = 0; i < 6; i++)
+                ApplyStickerVisual(_stickerMaterials[i], skin, i);
+        }
+
+        /// 텍스처가 있는 면은 텍스처를 입히고 색은 흰색으로 둔다 — 틴트를 곱하면
+        /// 대표색으로 한 번 더 물들어 실제 텍스처보다 탁하고 어둡게 보인다.
+        /// 텍스처가 없는 면(기존 5종처럼 색만 있는 스킨)은 그대로 플랫 컬러를 쓴다.
+        static void ApplyStickerVisual(Material mat, Skin skin, int i)
+        {
+            var tex = skin.StickerTextures != null && i < skin.StickerTextures.Length
+                ? skin.StickerTextures[i] : null;
+            if (tex != null)
+            {
+                mat.color = Color.white;
+                mat.mainTexture = tex;
+            }
+            else
+            {
+                mat.color = skin.StickerColors[i];
+                mat.mainTexture = null;
             }
         }
 

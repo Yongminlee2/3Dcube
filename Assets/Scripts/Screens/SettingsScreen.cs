@@ -9,9 +9,10 @@ namespace Cube.App
         static readonly int[] SpeedSteps = { 0, 120, 220, 320, 400 };
 
         Palette _p;
-        Button _theme, _inspection, _pad, _speed;
+        Button _theme, _inspection, _pad, _speed, _skin;
+        Text _themeValue, _inspectionValue, _padValue, _speedValue, _skinValue;
 
-        public void Build(RectTransform parent, Action onBack)
+        public void Build(RectTransform parent, Action onBack, Action onSkins)
         {
             _p = ThemeService.Current;
             transform.SetParent(parent, false);
@@ -20,57 +21,109 @@ namespace Cube.App
             if (root == null) root = gameObject.AddComponent<RectTransform>();
             UiKit.Stretch(root, Vector2.zero, Vector2.one, Vector4.zero);
 
-            var title = UiKit.Label(transform, "Title", "설정", 48, _p.TextPrimary, TextAnchor.MiddleLeft);
-            UiKit.Stretch((RectTransform)title.transform, new Vector2(0f, 0.90f), new Vector2(1f, 0.97f), new Vector4(48, 0, 48, 0));
+            BuildHeader(onBack);
 
-            _theme = Row("테마", 0.78f, () =>
-            {
-                ThemeService.Apply(!AppSettings.DarkTheme);
-                RefreshLabels();
-            });
-            _inspection = Row("인스펙션", 0.67f, () =>
-            {
-                AppSettings.Inspection = !AppSettings.Inspection;
-                RefreshLabels();
-            });
-            _pad = Row("노테이션 버튼", 0.56f, () =>
-            {
-                AppSettings.ShowPad = !AppSettings.ShowPad;
-                RefreshLabels();
-            });
-            _speed = Row("애니메이션 속도", 0.45f, () =>
-            {
-                int i = Array.IndexOf(SpeedSteps, AppSettings.AnimationMs);
-                AppSettings.AnimationMs = SpeedSteps[(i + 1) % SpeedSteps.Length];
-                RefreshLabels();
-            });
+            Section("화면", 0.835f);
+            _theme = Row("Row_테마", "테마", "다크와 라이트를 전환해요", "moon-stars", 0.735f,
+                () => ThemeService.Apply(!AppSettings.DarkTheme), out _themeValue);
+            _skin = Row("Row_스킨", "큐브 스킨", "큐브의 색과 질감을 골라요", "palette", 0.625f,
+                () => onSkins?.Invoke(), out _skinValue, chevron: true);
 
-            var back = UiKit.Button(transform, "Back", "돌아가기", _p, () => onBack?.Invoke());
-            UiKit.Stretch((RectTransform)back.transform, new Vector2(0.08f, 0.05f), new Vector2(0.92f, 0.13f), Vector4.zero);
+            Section("연습", 0.555f);
+            _inspection = Row("Row_인스펙션", "15초 인스펙션", "섞은 뒤 미리 살펴볼 시간을 줘요", "clock", 0.455f,
+                () => { AppSettings.Inspection = !AppSettings.Inspection; RefreshLabels(); }, out _inspectionValue);
+            _pad = Row("Row_노테이션 버튼", "노테이션 버튼", "화면 버튼으로도 회전할 수 있어요", "hand-click", 0.345f,
+                () => { AppSettings.ShowPad = !AppSettings.ShowPad; RefreshLabels(); }, out _padValue);
+            _speed = Row("Row_애니메이션 속도", "회전 속도", "큐브가 돌아가는 시간을 조절해요", "sparkles", 0.235f,
+                () =>
+                {
+                    int i = Array.IndexOf(SpeedSteps, AppSettings.AnimationMs);
+                    AppSettings.AnimationMs = SpeedSteps[(i + 1) % SpeedSteps.Length];
+                    RefreshLabels();
+                }, out _speedValue);
+
+            var saved = UiKit.Card(transform, "SavedNotice", _p);
+            UiKit.Stretch(saved, new Vector2(0.08f, 0.07f), new Vector2(0.92f, 0.145f), Vector4.zero);
+            var savedIcon = UiKit.Icon(saved, "SavedIcon", "check", _p.Success);
+            UiKit.Stretch((RectTransform)savedIcon.transform,
+                new Vector2(0.22f, 0.29f), new Vector2(0.29f, 0.71f), Vector4.zero);
+            var savedLabel = UiKit.Label(saved, "SavedLabel", "바꾼 설정은 자동으로 저장돼요", 22,
+                _p.TextSecondary, TextAnchor.MiddleLeft);
+            UiKit.Stretch((RectTransform)savedLabel.transform,
+                new Vector2(0.32f, 0f), new Vector2(0.82f, 1f), Vector4.zero);
 
             RefreshLabels();
         }
 
-        Button Row(string label, float yMin, Action action)
+        void BuildHeader(Action onBack)
         {
-            var btn = UiKit.Button(transform, $"Row_{label}", label, _p, () => action());
+            UiKit.ScreenHeader(transform, "설정", _p, onBack);
+        }
+
+        void Section(string text, float y)
+        {
+            var label = UiKit.Label(transform, $"Section_{text}", text, UiMetrics.SectionTitle,
+                _p.TextSecondary, TextAnchor.MiddleLeft);
+            label.fontStyle = FontStyle.Bold;
+            UiKit.Stretch((RectTransform)label.transform,
+                new Vector2(0.06f, y), new Vector2(0.94f, y + 0.05f), Vector4.zero);
+        }
+
+        Button Row(string name, string title, string subtitle, string iconName, float yMin,
+                   Action action, out Text valueLabel, bool chevron = false)
+        {
+            var btn = UiKit.Button(transform, name, title, _p, () => action(), ButtonVariant.Card);
             UiKit.Stretch((RectTransform)btn.transform,
-                new Vector2(0.08f, yMin), new Vector2(0.92f, yMin + 0.09f), Vector4.zero);
+                new Vector2(0.055f, yMin), new Vector2(0.945f, yMin + 0.095f), Vector4.zero);
+            UiKit.AddSoftOutline(btn.image, _p.Border, 1f);
+
+            var titleLabel = btn.GetComponentInChildren<Text>();
+            titleLabel.fontSize = 26;
+            titleLabel.fontStyle = FontStyle.Bold;
+            titleLabel.alignment = TextAnchor.MiddleLeft;
+            UiKit.Stretch((RectTransform)titleLabel.transform,
+                new Vector2(0.17f, 0.45f), new Vector2(0.67f, 0.91f), Vector4.zero);
+
+            var sub = UiKit.Label(btn.transform, "Subtitle", subtitle, 18,
+                _p.TextSecondary, TextAnchor.MiddleLeft);
+            UiKit.Stretch((RectTransform)sub.transform,
+                new Vector2(0.17f, 0.08f), new Vector2(0.70f, 0.48f), Vector4.zero);
+
+            var plate = UiKit.IconPlate(btn.transform, "IconPlate", iconName, _p, _p.Accent);
+            UiKit.Stretch(plate,
+                new Vector2(0.035f, 0.20f), new Vector2(0.14f, 0.80f), Vector4.zero);
+
+            valueLabel = UiKit.Label(btn.transform, "Value", "", 23,
+                _p.Accent, TextAnchor.MiddleRight);
+            valueLabel.fontStyle = FontStyle.Bold;
+            UiKit.Stretch((RectTransform)valueLabel.transform,
+                new Vector2(0.68f, 0f), new Vector2(chevron ? 0.88f : 0.94f, 1f), Vector4.zero);
+
+            if (chevron)
+            {
+                var arrow = UiKit.Icon(btn.transform, "Chevron", "chevron-right", _p.TextSecondary);
+                UiKit.Stretch((RectTransform)arrow.transform,
+                    new Vector2(0.90f, 0.34f), new Vector2(0.95f, 0.66f), Vector4.zero);
+            }
+
             return btn;
         }
 
         public void RefreshLabels()
         {
             _p = ThemeService.Current;
-            SetText(_theme, $"테마   {(AppSettings.DarkTheme ? "다크" : "라이트")}");
-            SetText(_inspection, $"인스펙션 15초   {(AppSettings.Inspection ? "켬" : "끔")}");
-            SetText(_pad, $"노테이션 버튼   {(AppSettings.ShowPad ? "켬" : "끔")}");
-            SetText(_speed, $"애니메이션 속도   {AppSettings.AnimationMs}ms");
+            SetValue(_themeValue, AppSettings.DarkTheme ? "다크" : "라이트", true);
+            SetValue(_skinValue, SkinService.Current.DisplayName, true);
+            SetValue(_inspectionValue, AppSettings.Inspection ? "켬" : "끔", AppSettings.Inspection);
+            SetValue(_padValue, AppSettings.ShowPad ? "켬" : "끔", AppSettings.ShowPad);
+            SetValue(_speedValue, AppSettings.AnimationMs == 0 ? "즉시" : $"{AppSettings.AnimationMs}ms", true);
         }
 
-        static void SetText(Button b, string text)
+        void SetValue(Text label, string text, bool active)
         {
-            if (b != null) b.GetComponentInChildren<Text>().text = text;
+            if (label == null) return;
+            label.text = text;
+            label.color = active ? _p.Accent : _p.TextSecondary;
         }
     }
 }

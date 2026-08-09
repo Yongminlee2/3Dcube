@@ -8,13 +8,17 @@ namespace Cube.App
     {
         public Color Background;
         public Color Surface;
+        public Color SurfaceRaised;
+        public Color SurfaceMuted;
         public Color TextPrimary;
         public Color TextSecondary;
+        public Color TextOnAccent;
+        public Color TextDisabled;
         public Color Border;
         public Color Accent;
-        public Color CubeBody;
-
-        /// 면 번호 순서: U, D, F, B, L, R
-        public Color[] StickerColors = new Color[6];
+        public Color AccentSoft;
+        public Color Success;
+        public Color Warning;
+        public Color Shadow;
     }
 }

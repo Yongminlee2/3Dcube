@@ -52,14 +52,14 @@ namespace Cube.App.Tests
             _renderer.Build(state);
             yield return null;
 
-            var palette = ThemeService.Current;
+            var skin = SkinService.Current;
             for (int f = 0; f < 6; f++)
                 for (int row = 0; row < 3; row++)
                     for (int col = 0; col < 3; col++)
                     {
                         var mr = _renderer.StickerAt((Face)f, row, col);
                         Assert.IsNotNull(mr, $"스티커 없음 face={f} {row},{col}");
-                        Color expected = palette.StickerColors[state.Get((Face)f, row, col)];
+                        Color expected = skin.StickerColors[state.Get((Face)f, row, col)];
                         TestColors.AssertSame(expected, mr.sharedMaterial.color, $"face={f} {row},{col}");
                     }
         }
@@ -75,8 +75,8 @@ namespace Cube.App.Tests
             _renderer.Refresh();
             yield return null;
 
-            var palette = ThemeService.Current;
-            Color expected = palette.StickerColors[state.Get(Face.U, 1, 2)];
+            var skin = SkinService.Current;
+            Color expected = skin.StickerColors[state.Get(Face.U, 1, 2)];
             TestColors.AssertSame(expected, _renderer.StickerAt(Face.U, 1, 2).sharedMaterial.color);
         }
 

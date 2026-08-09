@@ -1,0 +1,38 @@
+{
+  "id": "wood",
+  "displayName": "우드",
+  "bodyColorHex": "#241A16",
+  "generationDisclosure": "AI-generated original texture; recolored and normalized locally.",
+  "faces": {
+    "u": {
+      "representativeHex": "#D5AE17",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    },
+    "d": {
+      "representativeHex": "#E9DFCB",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    },
+    "f": {
+      "representativeHex": "#248552",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    },
+    "b": {
+      "representativeHex": "#355DB7",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    },
+    "l": {
+      "representativeHex": "#D8691F",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    },
+    "r": {
+      "representativeHex": "#B82D39",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "license": "OpenAI Terms of Use (AI-generated Output; user owns Output)"
+    }
+  }
+}

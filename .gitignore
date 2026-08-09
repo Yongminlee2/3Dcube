@@ -52,9 +52,20 @@ ehthumbs.db
 Desktop.ini
 .DS_Store
 
-# 빌드 로그
-/build.log
+# 빌드·테스트·에셋 생성 로그 (이름이 매번 달라져 하나씩 적을 수 없다)
+/*.log
+/TestResults*.xml
 
-# 갱신 로그
-/refresh.log
-/TestResults-Diag.xml
+# 작업 중 생긴 임시 산출물 — 디자인 검수 스크린샷, 이미지 생성 스크래치
+/tmp/
+/design-audit/
+__pycache__/
+
+# 서명키. 저장소에 절대 들어가면 안 된다
+*.keystore
+*.jks
+*.p12
+keystore.properties
+
+# 받은 스킨 꾸러미의 zip은 옆 폴더와 같은 내용이라 넣지 않는다
+delivery/**/*.zip

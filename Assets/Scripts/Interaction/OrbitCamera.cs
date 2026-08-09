@@ -5,7 +5,10 @@ namespace Cube.App
     /// 배경 드래그로 큐브를 통째로 굴린다. 상태를 바꾸지 않는다.
     public sealed class OrbitCamera : MonoBehaviour
     {
-        public static readonly Quaternion DefaultView = Quaternion.Euler(-22f, 34f, 0f);
+        // 야로(Y) 45도는 앞면과 오른쪽 면이 똑같은 폭으로 보이는 진짜 대칭 구도다.
+        // 34도처럼 45도에서 어긋나면 한쪽 면이 넓고 한쪽은 좁아 보여, 아무리
+        // 손으로 맞춰도 "삐딱하다"는 느낌이 가시지 않는다는 의견이 있었다.
+        public static readonly Quaternion DefaultView = Quaternion.Euler(-28f, 45f, 0f);
 
         Transform _cubeRoot;
         TouchInputSettings _settings;

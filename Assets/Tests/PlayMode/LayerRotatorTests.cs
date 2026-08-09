@@ -57,12 +57,12 @@ namespace Cube.App.Tests
             _rotator.EnqueueRange(MoveNotation.Parse("R U R' U'", 3));
             yield return WaitIdle();
 
-            var palette = ThemeService.Current;
+            var skin = SkinService.Current;
             for (int f = 0; f < 6; f++)
                 for (int row = 0; row < 3; row++)
                     for (int col = 0; col < 3; col++)
                     {
-                        Color expected = palette.StickerColors[_renderer.State.Get((Face)f, row, col)];
+                        Color expected = skin.StickerColors[_renderer.State.Get((Face)f, row, col)];
                         TestColors.AssertSame(expected,
                             _renderer.StickerAt((Face)f, row, col).sharedMaterial.color,
                             $"face={f} {row},{col}");
@@ -116,8 +116,8 @@ namespace Cube.App.Tests
             Assert.AreEqual(0, _rotator.QueueLength);
             yield return null;
 
-            var palette = ThemeService.Current;
-            Color expected = palette.StickerColors[_renderer.State.Get(Face.U, 0, 0)];
+            var skin = SkinService.Current;
+            Color expected = skin.StickerColors[_renderer.State.Get(Face.U, 0, 0)];
             TestColors.AssertSame(expected, _renderer.StickerAt(Face.U, 0, 0).sharedMaterial.color);
         }
 

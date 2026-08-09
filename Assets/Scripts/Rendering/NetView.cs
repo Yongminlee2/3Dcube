@@ -44,11 +44,11 @@ namespace Cube.App
             _cells = new Image[Faces.Count * n * n];
             _highlighted = new bool[_cells.Length];
 
-            var p = ThemeService.Current;
+            var skin = SkinService.Current;
 
             foreach (var (face, fc, fr) in Layout)
             {
-                var faceRoot = UiKit.Panel(transform, $"Face_{face}", p.CubeBody);
+                var faceRoot = UiKit.Panel(transform, $"Face_{face}", skin.CubeBody);
                 // 전개도 전체를 4x3 격자로 나누고 그 한 칸을 이 면이 차지한다.
                 faceRoot.anchorMin = new Vector2(fc / (float)Cols, 1f - (fr + 1) / (float)Rows);
                 faceRoot.anchorMax = new Vector2((fc + 1) / (float)Cols, 1f - fr / (float)Rows);
@@ -58,7 +58,7 @@ namespace Cube.App
                 for (int row = 0; row < n; row++)
                     for (int col = 0; col < n; col++)
                     {
-                        var cell = UiKit.Cell(faceRoot, $"{row}_{col}", p.StickerColors[(int)face]);
+                        var cell = UiKit.Cell(faceRoot, $"{row}_{col}", skin.StickerColors[(int)face]);
                         cell.sprite = UiKit.RoundedSmall; cell.type = Image.Type.Sliced;
                         var crt = (RectTransform)cell.transform;
                         crt.anchorMin = new Vector2(col / (float)n, 1f - (row + 1) / (float)n);
@@ -74,14 +74,14 @@ namespace Cube.App
         public void Refresh(CubeState state)
         {
             if (_cells == null || state == null || state.N != _n) return;
-            var p = ThemeService.Current;
+            var skin = SkinService.Current;
             for (int f = 0; f < Faces.Count; f++)
                 for (int row = 0; row < _n; row++)
                     for (int col = 0; col < _n; col++)
                     {
                         int i = (f * _n + row) * _n + col;
                         if (_highlighted[i]) continue;
-                        _cells[i].color = p.StickerColors[state.Get((Face)f, row, col)];
+                        _cells[i].color = skin.StickerColors[state.Get((Face)f, row, col)];
                     }
         }
 

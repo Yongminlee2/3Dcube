@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafc57a426d92374395443a5eaa0c179, type: 3}
+  m_Name: Skin_Muted
+  m_EditorClassIdentifier: Cube.Unity::Cube.App.Skin
+  DisplayName: "\uD1A4\uB2E4\uC6B4"
+  CubeBody: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+  StickerColors:
+  - {r: 0.7882353, g: 0.63529414, b: 0.15294118, a: 1}
+  - {r: 0.9098039, g: 0.9019608, b: 0.8745098, a: 1}
+  - {r: 0.29803923, g: 0.54901963, b: 0.41960785, a: 1}
+  - {r: 0.24313726, g: 0.43529412, b: 0.65882355, a: 1}
+  - {r: 0.7058824, g: 0.27058825, b: 0.22745098, a: 1}
+  - {r: 0.7882353, g: 0.47843137, b: 0.23921569, a: 1}

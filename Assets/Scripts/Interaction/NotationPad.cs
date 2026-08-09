@@ -38,14 +38,14 @@ namespace Cube.App
                 for (int c = 0; c < columns; c++)
                 {
                     string label = r == 0 ? Letters[c] : "2" + Letters[c];
-                    var btn = UiKit.Button(transform, $"Pad_{label}", label, p, null);
+                    var btn = UiKit.Button(transform, $"Pad_{label}", label, p, null, ButtonVariant.Segment);
                     string captured = label;
                     btn.onClick.AddListener(() => Fire(captured));
                     PlaceCell((RectTransform)btn.transform, c, c + 1, columns, r, rows);
                 }
 
-            _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계 '", p, TogglePrime);
-            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은수 w", p, ToggleWide);
+            _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계 '", p, TogglePrime, ButtonVariant.Segment);
+            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은수 w", p, ToggleWide, ButtonVariant.Segment);
             PlaceCell((RectTransform)_primeButton.transform, 0, 3, columns, faceRows, rows);
             PlaceCell((RectTransform)_wideButton.transform, 3, 6, columns, faceRows, rows);
             _wideButton.gameObject.SetActive(n >= 4);
@@ -66,9 +66,11 @@ namespace Cube.App
         void RefreshToggleColors()
         {
             if (_primeButton != null)
-                _primeButton.image.color = Prime ? _palette.Accent : _palette.Surface;
+                UiKit.StyleButton(_primeButton, _palette,
+                    Prime ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
             if (_wideButton != null)
-                _wideButton.image.color = Wide ? _palette.Accent : _palette.Surface;
+                UiKit.StyleButton(_wideButton, _palette,
+                    Wide ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
         }
 
         /// 테스트와 화면 양쪽에서 쓰는 입구. 버튼 하나를 누른 것과 같다.

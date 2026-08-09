@@ -3,7 +3,7 @@ using Cube.Core;
 
 namespace Cube.App
 {
-    public enum ScreenId { Home, Practice, Records, Settings, Learn, Lesson, Library, ColorInput }
+    public enum ScreenId { Home, Practice, Records, Settings, Learn, Lesson, Library, ColorInput, Skins }
 
     /// 씬을 새로 읽지 않고 패널만 켜고 끈다. 큐브를 다시 만들지 않아도 되고 전환이 즉각적이다.
     public sealed class ScreenRouter : MonoBehaviour
@@ -15,39 +15,50 @@ namespace Cube.App
         public LessonScreen Lesson { get; private set; }
         public AlgorithmScreen Library { get; private set; }
         public ColorInputScreen ColorInput { get; private set; }
+        public SkinScreen Skins { get; private set; }
         public SessionStore Store { get; private set; }
 
         HomeScreen _home;
         SettingsScreen _settings;
         RectTransform _canvasRect;
+        RectTransform _screenRoot;
 
         public void Build(Canvas canvas, SessionStore store)
         {
             Store = store;
             _canvasRect = (RectTransform)canvas.transform;
 
+            var safe = new GameObject("SafeAreaRoot", typeof(RectTransform));
+            safe.transform.SetParent(_canvasRect, false);
+            _screenRoot = (RectTransform)safe.transform;
+            UiKit.Stretch(_screenRoot, Vector2.zero, Vector2.one, Vector4.zero);
+            safe.AddComponent<SafeAreaFitter>();
+
             _home = new GameObject("HomeScreen").AddComponent<HomeScreen>();
-            _home.Build(_canvasRect, StartPractice, () => Go(ScreenId.Learn),
+            _home.Build(_screenRoot, StartPractice, () => Go(ScreenId.Learn),
                         () => Go(ScreenId.ColorInput),
                         () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
 
             Records = new GameObject("RecordsScreen").AddComponent<RecordsScreen>();
-            Records.Build(_canvasRect, store, () => Go(ScreenId.Home));
+            Records.Build(_screenRoot, store, () => Go(ScreenId.Home));
 
             _settings = new GameObject("SettingsScreen").AddComponent<SettingsScreen>();
-            _settings.Build(_canvasRect, () => Go(ScreenId.Home));
+            _settings.Build(_screenRoot, () => Go(ScreenId.Home), () => Go(ScreenId.Skins));
 
             Learn = new GameObject("LearnScreen").AddComponent<LearnScreen>();
-            Learn.Build(_canvasRect, OpenLesson, () => Go(ScreenId.Library), () => Go(ScreenId.Home));
+            Learn.Build(_screenRoot, OpenLesson, () => Go(ScreenId.Library), () => Go(ScreenId.Home));
 
             Lesson = new GameObject("LessonScreen").AddComponent<LessonScreen>();
-            Lesson.Build(_canvasRect, () => Go(ScreenId.Learn));
+            Lesson.Build(_screenRoot, () => Go(ScreenId.Learn));
 
             Library = new GameObject("AlgorithmScreen").AddComponent<AlgorithmScreen>();
-            Library.Build(_canvasRect, () => Go(ScreenId.Learn));
+            Library.Build(_screenRoot, () => Go(ScreenId.Learn));
 
             ColorInput = new GameObject("ColorInputScreen").AddComponent<ColorInputScreen>();
-            ColorInput.Build(_canvasRect, AcceptRealCube, () => Go(ScreenId.Home));
+            ColorInput.Build(_screenRoot, AcceptRealCube, () => Go(ScreenId.Home));
+
+            Skins = new GameObject("SkinScreen").AddComponent<SkinScreen>();
+            Skins.Build(_screenRoot, () => Go(ScreenId.Settings));
 
             // 화면을 만드는 도중에 무엇이 터지더라도 전부 겹쳐 보이지는 않게 한다.
             // 실기기에서 셰이더 예외로 Build가 중단됐을 때 정확히 그렇게 됐다.
@@ -103,7 +114,7 @@ namespace Cube.App
             }
 
             Practice = new GameObject("PracticeScreen").AddComponent<PracticeScreen>();
-            Practice.Build(_canvasRect, cubeSize);
+            Practice.Build(_screenRoot, cubeSize, () => Go(ScreenId.Home));
             Practice.Solved += OnSolved;
             Go(ScreenId.Practice);
         }
@@ -140,6 +151,7 @@ namespace Cube.App
                 Lesson != null ? Lesson.gameObject : null,
                 Library != null ? Library.gameObject : null,
                 ColorInput != null ? ColorInput.gameObject : null,
+                Skins != null ? Skins.gameObject : null,
             })
                 if (go != null) go.SetActive(false);
         }
@@ -155,15 +167,46 @@ namespace Cube.App
             if (Lesson != null) Lesson.gameObject.SetActive(id == ScreenId.Lesson);
             if (Library != null) Library.gameObject.SetActive(id == ScreenId.Library);
             if (ColorInput != null) ColorInput.gameObject.SetActive(id == ScreenId.ColorInput);
+            if (Skins != null) Skins.gameObject.SetActive(id == ScreenId.Skins);
 
-            // 큐브는 큐브를 쓰는 화면에서만 보인다.
-            bool cubeVisible = id == ScreenId.Practice || id == ScreenId.Lesson || id == ScreenId.Library;
+            // 큐브는 큐브를 쓰는 화면에서만 보인다. 스킨 고르기도 포함이다 —
+            // 큐브 자체가 미리보기라서 뒤에 보여야 고른 게 바로 눈에 들어온다.
+            bool cubeVisible = id == ScreenId.Practice || id == ScreenId.Lesson
+                             || id == ScreenId.Library || id == ScreenId.Skins;
             if (AppBootstrap.Instance != null && AppBootstrap.Instance.CubeRoot != null)
-                AppBootstrap.Instance.CubeRoot.gameObject.SetActive(cubeVisible);
+            {
+                var cubeRoot = AppBootstrap.Instance.CubeRoot.gameObject;
+                // Unity stops coroutines when CubeRoot is disabled. Finish the shared
+                // rotator first so no stale coroutine handle or half-turned pivot can
+                // leak into Practice, Lesson, Library, or the Skin preview later.
+                if (!cubeVisible && cubeRoot.activeSelf)
+                    cubeRoot.GetComponent<LayerRotator>()?.FinishAllImmediately();
+                cubeRoot.SetActive(cubeVisible);
+                switch (id)
+                {
+                    case ScreenId.Lesson:
+                        AppBootstrap.Instance.SetCubePresentation(0.72f, 0.25f);
+                        break;
+                    case ScreenId.Library:
+                        AppBootstrap.Instance.SetCubePresentation(0.52f, 0.28f);
+                        break;
+                    case ScreenId.Skins:
+                        AppBootstrap.Instance.SetCubePresentation(0.60f, 0.25f);
+                        break;
+                    default:
+                        // 전개도가 기본으로 접혀 스크램블 카드 밑에 얇은 띠만 남으므로,
+                        // 큐브는 화면 중앙에 가깝게 둔다. 0.18은 전개도가 가운데 카드로
+                        // 자리 잡던 예전 레이아웃 값이라 지금은 너무 위로 밀린다.
+                        AppBootstrap.Instance.SetCubePresentation(1f, 0.04f);
+                        break;
+                }
+            }
 
             if (id == ScreenId.Records) Records.Show(AppSettings.CubeSize);
             if (id == ScreenId.Settings) _settings.RefreshLabels();
             if (id == ScreenId.Learn) Learn.Refresh();   // 진도가 바뀌었을 수 있다
+            if (id == ScreenId.Library) Library.ResetCube();
+            if (id == ScreenId.Skins) Skins.Refresh();
         }
 
         void Update()
@@ -171,6 +214,8 @@ namespace Cube.App
             // 안드로이드 뒤로가기: 연습·기록·설정에서는 홈으로, 홈에서는 앱을 닫는다.
             if (!Input.GetKeyDown(KeyCode.Escape)) return;
             if (Current == ScreenId.Home) Application.Quit();
+            else if (Current == ScreenId.Lesson || Current == ScreenId.Library) Go(ScreenId.Learn);
+            else if (Current == ScreenId.Skins) Go(ScreenId.Settings);
             else Go(ScreenId.Home);
         }
     }

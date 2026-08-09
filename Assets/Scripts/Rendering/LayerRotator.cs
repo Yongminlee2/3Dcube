@@ -22,18 +22,16 @@ namespace Cube.App
         {
             public readonly Move Move;
             public readonly IReadOnlyList<Transform> Cubies;
-            public readonly float StartAngle;
 
-            public Pending(Move move, IReadOnlyList<Transform> cubies, float startAngle)
+            public Pending(Move move, IReadOnlyList<Transform> cubies)
             {
-                Move = move; Cubies = cubies; StartAngle = startAngle;
+                Move = move; Cubies = cubies;
             }
         }
 
         CubeRenderer _renderer;
         readonly Queue<Pending> _pending = new Queue<Pending>();
         Coroutine _running;
-        float _startAngle;
 
         public bool IsAnimating => _running != null || _pending.Count > 0;
         public int QueueLength => _pending.Count;
@@ -69,14 +67,6 @@ namespace Cube.App
             _renderer.Build(state);
         }
 
-        /// 손가락이 이미 돌려 놓은 각도에서 이어서 애니메이션한다.
-        /// 0부터 다시 그리면 손을 떼는 순간 화면이 튄다.
-        public void EnqueueFromAngle(Move m, float startAngleDeg)
-        {
-            _startAngle = startAngleDeg;
-            Enqueue(m);
-        }
-
         public void Enqueue(Move m)
         {
             if (_renderer == null || _renderer.State == null) return;
@@ -88,9 +78,6 @@ namespace Cube.App
             _renderer.State.Apply(m);
             _renderer.CommitPermutation(m);
             MoveApplied?.Invoke(m);
-
-            float start = _startAngle;
-            _startAngle = 0f;
 
             if (AppSettings.AnimationMs <= 0 || !isActiveAndEnabled)
             {
@@ -105,7 +92,7 @@ namespace Cube.App
                 return;
             }
 
-            _pending.Enqueue(new Pending(m, cubies, start));
+            _pending.Enqueue(new Pending(m, cubies));
             if (_running == null) _running = StartCoroutine(RunQueue());
         }
 
@@ -128,11 +115,10 @@ namespace Cube.App
             Vector3 axis = CubeRenderer.UnityAxis(p.Move.Axis);
             float total = TotalAngle(p.Move);
 
-            pivot.localRotation = Quaternion.AngleAxis(p.StartAngle, axis);
             foreach (var t in p.Cubies) if (t != null) t.SetParent(pivot, true);
 
-            float remaining = Mathf.Abs(total - p.StartAngle);
-            float duration = Mathf.Max(0.001f, AppSettings.AnimationMs / 1000f) * (remaining / 90f);
+            // 90도 한 번에 설정값만큼 쓴다. 손가락이든 버튼이든 같은 시간에 돈다.
+            float duration = Mathf.Max(0.001f, AppSettings.AnimationMs / 1000f) * (Mathf.Abs(total) / 90f);
             float elapsed = 0f;
 
             while (elapsed < duration)
@@ -140,7 +126,7 @@ namespace Cube.App
                 elapsed += Time.deltaTime;
                 float k = Mathf.Clamp01(elapsed / duration);
                 float eased = 1f - (1f - k) * (1f - k);          // 끝에서 부드럽게 멈춘다
-                pivot.localRotation = Quaternion.AngleAxis(Mathf.Lerp(p.StartAngle, total, eased), axis);
+                pivot.localRotation = Quaternion.AngleAxis(total * eased, axis);
                 yield return null;
             }
 
@@ -219,7 +205,6 @@ namespace Cube.App
         {
             if (_running != null) { StopCoroutine(_running); _running = null; }
             _pending.Clear();
-            _startAngle = 0f;
 
             // 애니메이션 도중이면 큐비가 피벗에 붙어 있을 수 있다. 전부 떼어낸다.
             if (_renderer != null)

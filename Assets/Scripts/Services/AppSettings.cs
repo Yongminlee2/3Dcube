@@ -11,6 +11,7 @@ namespace Cube.App
         const string KeyAnimMs = "cube.animMs";
         const string KeySize = "cube.size";
         const string KeyShowNet = "cube.showNet";
+        const string KeySkin = "cube.skin";
 
         public static bool DarkTheme
         {
@@ -36,10 +37,11 @@ namespace Cube.App
             set { PlayerPrefs.SetInt(KeyAnimMs, Mathf.Clamp(value, 0, 400)); PlayerPrefs.Save(); }
         }
 
-        /// 전개도 미니맵을 보여줄지. 화면이 좁을 때 접어 둘 수 있다.
+        /// 전개도 미니맵을 보여줄지. 기본은 접힘이다 — 큐브가 화면 가운데를
+        /// 넓게 차지하고, 필요할 때만 펴서 본다.
         public static bool ShowNet
         {
-            get => PlayerPrefs.GetInt(KeyShowNet, 1) != 0;
+            get => PlayerPrefs.GetInt(KeyShowNet, 0) != 0;
             set { PlayerPrefs.SetInt(KeyShowNet, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
@@ -47,6 +49,13 @@ namespace Cube.App
         {
             get => Mathf.Clamp(PlayerPrefs.GetInt(KeySize, 3), 2, 4);
             set { PlayerPrefs.SetInt(KeySize, Mathf.Clamp(value, 2, 4)); PlayerPrefs.Save(); }
+        }
+
+        /// 고른 스킨의 에셋 이름. 빈 문자열이면 SkinService가 기본값을 고른다.
+        public static string SkinName
+        {
+            get => PlayerPrefs.GetString(KeySkin, "");
+            set { PlayerPrefs.SetString(KeySkin, value); PlayerPrefs.Save(); }
         }
     }
 }
