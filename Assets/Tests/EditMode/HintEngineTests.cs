@@ -43,6 +43,22 @@ namespace Cube.Core.Tests
         }
 
         [Test]
+        public void 힌트에는_버튼이_없는_y_전체회전이_나오지_않는다()
+        {
+            for (int seed = 0; seed < 10; seed++)
+            {
+                var cube = Scrambled(seed);
+                for (int i = 0; i < 80 && !cube.IsSolved(); i++)
+                {
+                    var h = HintEngine.Next(cube);
+                    if (!h.HasMove) break;
+                    StringAssert.DoesNotContain("y", h.Notation, $"seed={seed}: {h.Notation}");
+                    cube.Apply(MoveNotation.Parse(h.Notation, 3));
+                }
+            }
+        }
+
+        [Test]
         public void 힌트를_따라가면_실제로_풀린다()
         {
             // 힌트 로직 전체를 한 번에 덮는 시험이다.

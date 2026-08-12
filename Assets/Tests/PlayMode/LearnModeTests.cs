@@ -134,6 +134,22 @@ namespace Cube.App.Tests
             Assert.IsTrue(CubeStateNow().IsSolved(), "라이브러리는 완성 상태에서 시작한다");
         }
 
+        [UnityTest]
+        public IEnumerator 단계_힌트도_큐브를_대신_돌리지_않는다()
+        {
+            _router.OpenLesson(3);
+            yield return null;
+            _router.Lesson.Practice();
+            yield return null;
+
+            var before = CubeStateNow().Clone();
+            _router.Lesson.ShowHint();
+            yield return null;
+
+            Assert.IsTrue(before.SameAs(CubeStateNow()),
+                "단계 힌트는 설명만 하고 시연을 시작하면 안 된다");
+        }
+
         static CubeState CubeStateNow()
             => AppBootstrap.Instance.CubeRoot.GetComponent<CubeRenderer>().State;
     }

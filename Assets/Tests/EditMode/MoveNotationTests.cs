@@ -5,6 +5,14 @@ namespace Cube.Core.Tests
 {
     public class MoveNotationTests
     {
+        [TestCase("R", "오른쪽 면을 시계 방향으로 한 칸")]
+        [TestCase("U'", "위쪽 면을 반시계 방향으로 한 칸")]
+        [TestCase("F2", "앞면을 반 바퀴")]
+        public void 첫_수를_사람이_읽는_설명으로_바꾼다(string notation, string expected)
+        {
+            Assert.AreEqual(expected, MoveNotation.DescribeFirst(notation + " L D"));
+        }
+
         [Test]
         public void 기본_여섯_면이_규정된_무브로_바뀐다()
         {

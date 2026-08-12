@@ -345,7 +345,7 @@ namespace Cube.App
             }
         }
 
-        /// 현재 큐브 상태에서 다음 한 수를 돌려서 보여준다.
+        /// 현재 큐브 상태에서 다음 조작을 설명한다. 힌트가 큐브를 대신 돌리지는 않는다.
         public void ShowHint()
         {
             if (_renderer == null || _renderer.State == null) return;
@@ -363,8 +363,8 @@ namespace Cube.App
                 return;
             }
 
-            SetStatus($"{hint.Notation}  ·  {hint.Reason}");
-            _player.Play(hint.Notation);
+            SetStatus($"직접 조작 · {hint.Notation}\n"
+                      + $"첫 동작: {MoveNotation.DescribeFirst(hint.Notation)} · {hint.Reason}");
         }
 
         void PlayAlgorithm(Algorithm alg)

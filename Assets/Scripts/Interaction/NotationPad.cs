@@ -12,10 +12,11 @@ namespace Cube.App
 
         int _n;
         Action<Move> _onMove;
-        Button _primeButton, _wideButton;
+        Button _primeButton, _doubleButton, _wideButton;
         Palette _palette;
 
         public bool Prime { get; set; }
+        public bool Double { get; set; }
         public bool Wide { get; set; }
 
         /// **자기 자신의 RectTransform 안에** 버튼을 깐다.
@@ -32,7 +33,7 @@ namespace Cube.App
 
             int columns = Letters.Length;
             int faceRows = n >= 4 ? 2 : 1;     // 4칸 큐브는 안쪽 층 버튼이 한 줄 더 붙는다
-            int rows = faceRows + 1;           // 마지막 줄은 반시계·넓은수 토글
+            int rows = faceRows + 1;           // 마지막 줄은 반시계·2회·넓은 수 토글
 
             for (int r = 0; r < faceRows; r++)
                 for (int c = 0; c < columns; c++)
@@ -44,11 +45,12 @@ namespace Cube.App
                     PlaceCell((RectTransform)btn.transform, c, c + 1, columns, r, rows);
                 }
 
-            _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계 '", p, TogglePrime, ButtonVariant.Segment);
-            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은수 w", p, ToggleWide, ButtonVariant.Segment);
-            PlaceCell((RectTransform)_primeButton.transform, 0, 3, columns, faceRows, rows);
-            PlaceCell((RectTransform)_wideButton.transform, 3, 6, columns, faceRows, rows);
-            _wideButton.gameObject.SetActive(n >= 4);
+            _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계", p, TogglePrime, ButtonVariant.Segment);
+            _doubleButton = UiKit.Button(transform, "Pad_Double", "2회", p, ToggleDouble, ButtonVariant.Segment);
+            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은 수", p, ToggleWide, ButtonVariant.Segment);
+            PlaceCell((RectTransform)_primeButton.transform, 0, 2, columns, faceRows, rows);
+            PlaceCell((RectTransform)_doubleButton.transform, 2, 4, columns, faceRows, rows);
+            PlaceCell((RectTransform)_wideButton.transform, 4, 6, columns, faceRows, rows);
             RefreshToggleColors();
         }
 
@@ -60,7 +62,20 @@ namespace Cube.App
             rt.offsetMax = new Vector2(-3f, -3f);
         }
 
-        void TogglePrime() { Prime = !Prime; RefreshToggleColors(); }
+        void TogglePrime()
+        {
+            Prime = !Prime;
+            if (Prime) Double = false;
+            RefreshToggleColors();
+        }
+
+        void ToggleDouble()
+        {
+            Double = !Double;
+            if (Double) Prime = false;
+            RefreshToggleColors();
+        }
+
         void ToggleWide() { Wide = !Wide; RefreshToggleColors(); }
 
         void RefreshToggleColors()
@@ -68,6 +83,9 @@ namespace Cube.App
             if (_primeButton != null)
                 UiKit.StyleButton(_primeButton, _palette,
                     Prime ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
+            if (_doubleButton != null)
+                UiKit.StyleButton(_doubleButton, _palette,
+                    Double ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
             if (_wideButton != null)
                 UiKit.StyleButton(_wideButton, _palette,
                     Wide ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
@@ -84,10 +102,16 @@ namespace Cube.App
             string token = label;
             if (Wide && !label.StartsWith("2")) token += "w";
             if (Prime) token += "'";
+            else if (Double) token += "2";
 
             foreach (var m in MoveNotation.ParseToken(token, _n)) _onMove?.Invoke(m);
 
-            if (Prime) { Prime = false; RefreshToggleColors(); }   // 반시계는 한 번만 걸린다
+            if (Prime || Double)
+            {
+                Prime = false;
+                Double = false;
+                RefreshToggleColors();
+            }
         }
     }
 }

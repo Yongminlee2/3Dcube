@@ -26,6 +26,8 @@ namespace Cube.App
         RectTransform _netCardRect, _netTitleRect, _netToggleRect;
         MoveHistory _history;
         Text _timerLabel, _scrambleLabel;
+        GameObject _hintCard;
+        Text _hintNotation, _hintExplanation;
         Palette _p;
 
         // 스크램블 카드 바로 아래에 고정한 윗변. 접히면 얇은 띠만 남기고,
@@ -113,7 +115,8 @@ namespace Cube.App
             scrambleTag.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)scrambleTag.transform,
                 new Vector2(0.035f, 0.08f), new Vector2(0.22f, 0.92f), Vector4.zero);
-            _scrambleLabel = UiKit.Label(scrambleCard, "Scramble", "섞기 버튼을 눌러 시작하세요", UiMetrics.Caption,
+            _scrambleLabel = UiKit.Label(scrambleCard, "Scramble",
+                "섞기 버튼으로 시작 · 두 손가락으로 시점 조절", UiMetrics.Caption,
                 p.TextSecondary, TextAnchor.MiddleLeft);
             _scrambleLabel.resizeTextForBestFit = true;
             _scrambleLabel.resizeTextMinSize = 15;
@@ -155,34 +158,64 @@ namespace Cube.App
             _net.Expanded = AppSettings.ShowNet;
             RefreshNetToggle();
 
+            BuildHintCard(p);
+
             var padRoot = UiKit.Panel(transform, "Pad", new Color(0, 0, 0, 0));
-            UiKit.Stretch(padRoot, new Vector2(0.03f, 0.135f), new Vector2(0.97f, 0.255f), Vector4.zero);
+            UiKit.Stretch(padRoot, new Vector2(0.045f, 0.11f), new Vector2(0.955f, 0.235f), Vector4.zero);
             _padRoot = padRoot.gameObject;
             _pad = padRoot.gameObject.AddComponent<NotationPad>();
             _pad.Build(padRoot, _n, p, ApplyMove);
             _padRoot.SetActive(AppSettings.ShowPad);
 
-            // 힌트를 누르면 여기에 다음 수와 이유가 뜨고, 다시 누르면 그대로 둬 준다.
-            _hintButton = UiKit.Button(transform, "Hint", "", p, FollowHint, ButtonVariant.Card);
-            UiKit.Stretch((RectTransform)_hintButton.transform,
-                new Vector2(0.05f, 0.095f), new Vector2(0.95f, 0.128f), Vector4.zero);
-            var hintLabel = _hintButton.GetComponentInChildren<Text>();
-            hintLabel.alignment = TextAnchor.MiddleLeft;
-            hintLabel.fontSize = UiMetrics.SectionTitle;
-            UiKit.Stretch((RectTransform)hintLabel.transform, Vector2.zero, Vector2.one, new Vector4(20, 0, 20, 0));
-            _hintButton.gameObject.SetActive(false);
-
-            var bar = UiKit.Panel(transform, "Bar", new Color(0, 0, 0, 0));
-            UiKit.Stretch(bar, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.09f), Vector4.zero);
-            MakeBarButton(bar, "섞기", 0f, 0.235f, Scramble, p, ButtonVariant.Primary);
-            MakeBarButton(bar, "힌트", 0.255f, 0.235f, ShowHint, p, ButtonVariant.Secondary);
-            MakeBarButton(bar, "되돌리기", 0.51f, 0.235f, Undo, p, ButtonVariant.Secondary);
-            MakeBarButton(bar, "초기화", 0.765f, 0.235f, ResetCube, p, ButtonVariant.Secondary);
+            var bar = UiKit.Card(transform, "Bar", p, raised: true);
+            UiKit.Stretch(bar, new Vector2(0.045f, 0.018f), new Vector2(0.955f, 0.095f), Vector4.zero);
+            UiKit.AddSoftOutline(bar.GetComponent<Image>(), p.Border, 1f);
+            MakeBarButton(bar, "섞기", "shuffle", 0, Scramble, p, true, false);
+            MakeBarButton(bar, "힌트", "lightbulb", 1, ShowHint, p, false, false);
+            MakeBarButton(bar, "되돌리기", "undo", 2, Undo, p, false, false);
+            MakeBarButton(bar, "초기화", "restart", 3, ResetCube, p, false, true);
         }
 
-        Button _hintButton;
         Button _netToggle;
         Hint _hint;
+
+        void BuildHintCard(Palette p)
+        {
+            var card = UiKit.Card(transform, "Hint", p, raised: true);
+            _hintCard = card.gameObject;
+            UiKit.Stretch(card,
+                new Vector2(0.045f, 0.245f), new Vector2(0.955f, 0.335f), Vector4.zero);
+            UiKit.AddSoftOutline(card.GetComponent<Image>(), p.Border, 1f);
+
+            var tag = UiKit.Label(card, "HintTag", "힌트", UiMetrics.Micro,
+                p.Accent, TextAnchor.MiddleLeft);
+            tag.fontStyle = FontStyle.Bold;
+            UiKit.Stretch((RectTransform)tag.transform,
+                new Vector2(0.035f, 0.52f), new Vector2(0.26f, 0.90f), Vector4.zero);
+
+            _hintNotation = UiKit.Label(card, "HintNotation", "직접 조작",
+                28, p.TextPrimary, TextAnchor.MiddleLeft);
+            _hintNotation.fontStyle = FontStyle.Bold;
+            _hintNotation.resizeTextForBestFit = true;
+            _hintNotation.resizeTextMinSize = 17;
+            _hintNotation.resizeTextMaxSize = 28;
+            UiKit.Stretch((RectTransform)_hintNotation.transform,
+                new Vector2(0.035f, 0.10f), new Vector2(0.29f, 0.56f), Vector4.zero);
+
+            var divider = UiKit.Divider(card, "HintDivider", p.Border);
+            UiKit.Stretch(divider,
+                new Vector2(0.315f, 0.18f), new Vector2(0.317f, 0.82f), Vector4.zero);
+
+            _hintExplanation = UiKit.Label(card, "HintExplanation",
+                "힌트를 누르면 다음 동작을 설명해 드려요. 큐브는 자동으로 움직이지 않습니다.",
+                20, p.TextSecondary, TextAnchor.MiddleLeft);
+            _hintExplanation.resizeTextForBestFit = true;
+            _hintExplanation.resizeTextMinSize = 15;
+            _hintExplanation.resizeTextMaxSize = 20;
+            UiKit.Wrap(_hintExplanation);
+            UiKit.Stretch((RectTransform)_hintExplanation.transform,
+                new Vector2(0.35f, 0.12f), new Vector2(0.965f, 0.88f), Vector4.zero);
+        }
 
         void ToggleNet()
         {
@@ -218,8 +251,7 @@ namespace Cube.App
         {
             if (_n != 3)
             {
-                SetHintText("힌트는 3×3에서만 됩니다.");
-                _hintButton.interactable = false;
+                SetHint("안내", "힌트는 3×3에서만 됩니다.");
                 return;
             }
 
@@ -228,37 +260,34 @@ namespace Cube.App
 
             if (_hint.IsSolved)
             {
-                SetHintText(_hint.Reason);
-                _hintButton.interactable = false;
+                SetHint("완료", _hint.Reason);
             }
             else
             {
                 foreach (var (face, row, col) in HintEngine.PendingCells(Renderer.State, _hint.Stage))
                     _net.SetHighlight(face, row, col, ThemeService.Current.Accent);
 
-                SetHintText(_hint.HasMove
-                    ? $"▶  {_hint.Notation}      {_hint.Reason}"
-                    : _hint.Reason);
-                _hintButton.interactable = _hint.HasMove;
+                if (_hint.HasMove)
+                    SetHint(_hint.Notation,
+                        $"{MoveNotation.DescribeFirst(_hint.Notation)} · {_hint.Reason}");
+                else
+                    SetHint("안내", _hint.Reason);
             }
             _net.Refresh(Renderer.State);
         }
 
-        /// 힌트 줄을 누르면 그 수를 대신 둬 준다.
+        /// 예전 공개 API를 유지하되 힌트는 설명 전용이다.
+        /// 직접 호출해도 큐브 상태를 바꾸지 않는다.
         public void FollowHint()
         {
-            if (!_hint.HasMove) return;
-            _rotator.EnqueueRange(MoveNotation.Parse(_hint.Notation, _n));
-            _hint = default;
-            _net.ClearHighlights();
-            _net.Refresh(Renderer.State);
-            _hintButton.gameObject.SetActive(false);
+            if (_hint.HasMove) ShowHint();
         }
 
-        void SetHintText(string text)
+        void SetHint(string notation, string explanation)
         {
-            _hintButton.gameObject.SetActive(true);
-            _hintButton.GetComponentInChildren<Text>().text = text;
+            if (_hintCard != null) _hintCard.SetActive(true);
+            if (_hintNotation != null) _hintNotation.text = notation;
+            if (_hintExplanation != null) _hintExplanation.text = explanation;
         }
 
         static T GetOrAdd<T>(GameObject go) where T : Component
@@ -267,17 +296,41 @@ namespace Cube.App
             return c != null ? c : go.AddComponent<T>();
         }
 
-        void MakeBarButton(RectTransform bar, string label, float xMin, float width, Action action,
-                           Palette p, ButtonVariant variant)
+        void MakeBarButton(RectTransform bar, string label, string iconName, int index, Action action,
+                           Palette p, bool primary, bool danger)
         {
-            var btn = UiKit.Button(bar, $"Bar_{label}", label, p, () => action(), variant);
-            btn.GetComponentInChildren<Text>().fontSize = 25;
-            btn.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
+            var btn = UiKit.Button(bar, $"Bar_{label}", label, p, () => action(),
+                primary ? ButtonVariant.Primary : ButtonVariant.Ghost);
             var rt = (RectTransform)btn.transform;
-            rt.anchorMin = new Vector2(xMin, 0f);
-            rt.anchorMax = new Vector2(xMin + width, 1f);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            float xMin = index / 4f;
+            rt.anchorMin = new Vector2(xMin, 0.06f);
+            rt.anchorMax = new Vector2(xMin + 0.25f, 0.94f);
+            rt.offsetMin = new Vector2(5f, 0f);
+            rt.offsetMax = new Vector2(-5f, 0f);
+            btn.image.sprite = UiKit.RoundedTight;
+
+            var text = btn.transform.Find("Label").GetComponent<Text>();
+            text.fontSize = 18;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.LowerCenter;
+            UiKit.Stretch((RectTransform)text.transform,
+                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.44f), Vector4.zero);
+
+            Color color = danger
+                ? new Color(1f, 0.34f, 0.38f, 1f)
+                : primary ? p.TextOnAccent : p.TextPrimary;
+            text.color = color;
+            var icon = UiKit.Icon(btn.transform, "Icon", iconName, color);
+            UiKit.Stretch((RectTransform)icon.transform,
+                new Vector2(0.39f, 0.49f), new Vector2(0.61f, 0.86f), Vector4.zero);
+
+            if (index > 0)
+            {
+                var divider = UiKit.Divider(bar, $"Divider_{index}", p.Border);
+                UiKit.Stretch(divider,
+                    new Vector2(xMin, 0.20f), new Vector2(xMin + 0.0015f, 0.80f), Vector4.zero);
+                divider.SetAsFirstSibling();
+            }
         }
 
         // 큐브 부품은 화면들이 공유한다. 숨어 있는 동안에도 구독이 살아 있으면
@@ -376,13 +429,15 @@ namespace Cube.App
             _history.Clear();
             _movesSinceScramble = 0;
             CurrentScramble = "";
-            if (_scrambleLabel != null) _scrambleLabel.text = "섞기 버튼을 눌러 시작하세요";
+            if (_scrambleLabel != null)
+                _scrambleLabel.text = "섞기 버튼으로 시작 · 두 손가락으로 시점 조절";
             _armed = false;
             Timer.Reset();
 
             // 큐브가 바뀌면 들고 있던 힌트는 더 이상 맞지 않는다.
             _hint = default;
-            if (_hintButton != null) _hintButton.gameObject.SetActive(false);
+            SetHint("직접 조작",
+                "힌트를 누르면 다음 동작을 설명해 드려요. 큐브는 자동으로 움직이지 않습니다.");
             if (_net != null) { _net.ClearHighlights(); _net.Refresh(Renderer.State); }
         }
 

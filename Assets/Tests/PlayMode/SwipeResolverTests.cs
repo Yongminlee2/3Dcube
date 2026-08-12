@@ -12,6 +12,29 @@ namespace Cube.App.Tests
         static readonly Vector3Int Z = new Vector3Int(0, 0, 1);
 
         [Test]
+        public void 시점_회전은_화면_수평을_유지한다()
+        {
+            var go = new GameObject("OrbitCameraTest");
+            try
+            {
+                var orbit = go.AddComponent<OrbitCamera>();
+                orbit.Init(go.transform);
+
+                Assert.That((go.transform.localRotation * Vector3.up).x,
+                    Is.EqualTo(0f).Within(0.0001f));
+
+                orbit.Orbit(new Vector2(220f, -140f));
+
+                Assert.That((go.transform.localRotation * Vector3.up).x,
+                    Is.EqualTo(0f).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
         public void 앞면_윗줄을_오른쪽으로_밀면_U프라임이_된다()
         {
             // F면(법선 +Z), 오른쪽으로 드래그. 화면에서 X 접선이 오른쪽, Y 접선이 위쪽.

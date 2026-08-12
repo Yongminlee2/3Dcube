@@ -82,7 +82,7 @@ namespace Cube.Core
                     return BuildLastLayerHint(target, lesson.Title, tokens, alg);
                 }
 
-            return new Hint(target, alg, $"{lesson.Title} — 공식을 쓴 뒤 다시 살펴보세요.");
+            return ManualHint(target, alg, $"{lesson.Title} — 공식을 쓴 뒤 다시 살펴보세요.");
         }
 
         /// 탐색이 실제로 무엇을 찾는지 밖에서 볼 수 있게 열어 둔다.
@@ -155,7 +155,60 @@ namespace Cube.Core
             else if (algCount == 1) reason = $"{title} — 자세를 맞춘 뒤 공식을 한 번 씁니다.";
             else reason = $"{title} — 공식을 {algCount}번 써야 하는 경우입니다.";
 
-            return new Hint(target, string.Join(" ", tokens), reason);
+            return ManualHint(target, string.Join(" ", tokens), reason);
+        }
+
+        /// 힌트 탐색에는 큐브를 통째로 다시 잡는 y 회전을 써도 되지만, 앱에는
+        /// y 버튼이 없고 시점 회전은 논리 상태를 바꾸지 않는다. 따라서 y를 앞에
+        /// 누적한 뒤 이후 면 회전을 고정된 U/D/L/R/F/B 기준으로 치환한다.
+        /// 마지막에 남는 전체 방향은 단계 판정에 영향을 주지 않으므로 버린다.
+        static Hint ManualHint(int stage, string notation, string reason)
+            => new Hint(stage, RemoveWholeCubeY(notation), reason);
+
+        static string RemoveWholeCubeY(string notation)
+        {
+            if (string.IsNullOrWhiteSpace(notation)) return "";
+
+            int orientation = 0;
+            var result = new List<string>();
+            foreach (var token in notation.Split(new[] { ' ', '\t', '\n', '\r' },
+                                                   StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (TryYTurns(token, out int turns))
+                {
+                    orientation = (orientation + turns) & 3;
+                    continue;
+                }
+
+                result.Add(RemapAroundY(token, orientation));
+            }
+            return string.Join(" ", result);
+        }
+
+        static bool TryYTurns(string token, out int turns)
+        {
+            turns = 0;
+            if (token == "y") { turns = 1; return true; }
+            if (token == "y2") { turns = 2; return true; }
+            if (token == "y'") { turns = 3; return true; }
+            return false;
+        }
+
+        static string RemapAroundY(string token, int orientation)
+        {
+            if (orientation == 0 || string.IsNullOrEmpty(token)) return token;
+
+            char face = token[0];
+            const string ring = "FRBL";
+            int index = ring.IndexOf(char.ToUpperInvariant(face));
+            if (index < 0) return token; // U/D는 Y축 회전에도 같은 면이다.
+
+            // 누적된 y를 수식의 맨 뒤로 보내려면 G^-1 · move · G로
+            // 켤레 변환한다. y 한 번 기준 F→R, R→B, B→L, L→F다.
+            int mapped = (index + orientation) & 3;
+            char mappedFace = ring[mapped];
+            if (char.IsLower(face)) mappedFace = char.ToLowerInvariant(mappedFace);
+            return mappedFace + token.Substring(1);
         }
 
         // ---------- 앞 단계: 조각 단위 탐색 ----------
@@ -239,7 +292,7 @@ namespace Cube.Core
                 if (Search(work, target, now, alphabet, depth, path))
                 {
                     path.Reverse();
-                    return new Hint(target, string.Join(" ", path),
+                    return ManualHint(target, string.Join(" ", path),
                         $"{lesson.Title} — 조각 하나를 더 맞춥니다. ({now + 1}/4)");
                 }
             }

@@ -97,7 +97,7 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
-        public IEnumerator 실은_큐브에서_힌트를_받을_수_있다()
+        public IEnumerator 실은_큐브에서도_힌트는_설명만_한다()
         {
             var real = CubeState.Solved(3);
             real.Apply(MoveNotation.Parse("R U R' U' F2 L D", 3));
@@ -106,17 +106,13 @@ namespace Cube.App.Tests
             _router.Practice.LoadState(real);
             yield return null;
 
-            int before = StageChecker.CurrentStage(_router.Practice.Renderer.State);
-            for (int i = 0; i < 40; i++)
-            {
-                _router.Practice.ShowHint();
-                _router.Practice.FollowHint();
-                yield return null;
-                if (StageChecker.CurrentStage(_router.Practice.Renderer.State) > before) break;
-            }
+            var before = _router.Practice.Renderer.State.Clone();
+            _router.Practice.ShowHint();
+            _router.Practice.FollowHint();
+            yield return null;
 
-            Assert.Greater(StageChecker.CurrentStage(_router.Practice.Renderer.State), before,
-                "실은 큐브에서 힌트가 진척을 못 만든다");
+            Assert.IsTrue(before.SameAs(_router.Practice.Renderer.State),
+                "실은 큐브에서도 힌트가 상태를 바꾸면 안 된다");
         }
 
         [Test]
@@ -126,6 +122,20 @@ namespace Cube.App.Tests
             _input.Paint(Face.U, 0, 0);
             _input.ResetToSolved();
             Assert.IsTrue(_input.Current.IsSolved());
+        }
+
+        [Test]
+        public void 카메라로_읽은_여섯_면이_현재_큐브에_적용된다()
+        {
+            var expected = CubeState.Solved(3);
+            expected.Apply(MoveNotation.Parse("R U R' U' F2 L D B2", 3));
+            Color[][] samples = CubeColorRecognizerTests.SamplesFor(expected);
+
+            for (int face = 0; face < 6; face++)
+                _input.ApplyScannedFace((Face)face, samples[face]);
+
+            Assert.AreEqual(6, _input.CapturedFaceCount);
+            Assert.IsTrue(expected.SameAs(_input.Current));
         }
     }
 }

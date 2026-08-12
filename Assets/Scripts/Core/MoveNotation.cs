@@ -145,6 +145,40 @@ namespace Cube.Core
             return sb.ToString();
         }
 
+        /// 힌트에서 첫 수를 사람이 바로 따라 할 수 있는 말로 바꾼다.
+        /// 전체 공식은 원래 표기를 함께 보여 주고, 이 설명은 시작 방향을 알려준다.
+        public static string DescribeFirst(string notation)
+        {
+            if (string.IsNullOrWhiteSpace(notation)) return "";
+            string token = notation.Split(new[] { ' ', '\t', '\n', '\r' },
+                                           StringSplitOptions.RemoveEmptyEntries)[0];
+            return DescribeToken(token);
+        }
+
+        public static string DescribeToken(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return "";
+
+            string face;
+            switch (char.ToUpperInvariant(token[0]))
+            {
+                case 'R': face = "오른쪽 면"; break;
+                case 'L': face = "왼쪽 면"; break;
+                case 'U': face = "위쪽 면"; break;
+                case 'D': face = "아래쪽 면"; break;
+                case 'F': face = "앞면"; break;
+                case 'B': face = "뒷면"; break;
+                case 'Y': return "큐브 전체 방향 바꾸기";
+                default: return token;
+            }
+
+            if (token.EndsWith("2", StringComparison.Ordinal))
+                return $"{face}을 반 바퀴";
+            if (token.EndsWith("'", StringComparison.Ordinal))
+                return $"{face}을 반시계 방향으로 한 칸";
+            return $"{face}을 시계 방향으로 한 칸";
+        }
+
         static char PositiveLetter(Axis a) => a == Axis.X ? 'R' : a == Axis.Y ? 'U' : 'F';
         static char NegativeLetter(Axis a) => a == Axis.X ? 'L' : a == Axis.Y ? 'D' : 'B';
     }

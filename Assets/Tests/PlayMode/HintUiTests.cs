@@ -39,25 +39,19 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
-        public IEnumerator 힌트를_따라두면_실제로_진척이_생긴다()
+        public IEnumerator 힌트와_안내카드를_눌러도_큐브는_움직이지_않는다()
         {
             var practice = _router.Practice;
             practice.Scramble();
             yield return null;
 
-            int before = StageChecker.CurrentStage(practice.Renderer.State);
+            var before = practice.Renderer.State.Clone();
+            practice.ShowHint();
+            practice.FollowHint();
+            yield return null;
 
-            // 힌트를 보고 따라두기를 몇 번 반복하면 단계가 올라가야 한다.
-            for (int i = 0; i < 40; i++)
-            {
-                practice.ShowHint();
-                practice.FollowHint();
-                yield return null;
-                if (StageChecker.CurrentStage(practice.Renderer.State) > before) break;
-            }
-
-            Assert.Greater(StageChecker.CurrentStage(practice.Renderer.State), before,
-                "힌트를 마흔 번 따라뒀는데 단계가 그대로다");
+            Assert.IsTrue(before.SameAs(practice.Renderer.State),
+                "힌트는 설명만 하고 큐브를 대신 돌리면 안 된다");
         }
 
         [UnityTest]
