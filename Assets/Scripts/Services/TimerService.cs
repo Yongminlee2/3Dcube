@@ -49,6 +49,29 @@ namespace Cube.App
             _inspectionStart = _solveStart = _stoppedAt = 0d;
         }
 
+        public void Restore(TimerPhase phase, double elapsedMs, double inspectionRemainingMs)
+        {
+            Reset();
+            elapsedMs = Math.Max(0d, elapsedMs);
+            switch (phase)
+            {
+                case TimerPhase.Inspection:
+                    inspectionRemainingMs = Math.Max(0d, Math.Min(InspectionMs, inspectionRemainingMs));
+                    _inspectionStart = _now() - (InspectionMs - inspectionRemainingMs);
+                    Phase = TimerPhase.Inspection;
+                    break;
+                case TimerPhase.Running:
+                    _solveStart = _now() - elapsedMs;
+                    Phase = TimerPhase.Running;
+                    break;
+                case TimerPhase.Stopped:
+                    _solveStart = _now() - elapsedMs;
+                    _stoppedAt = _now();
+                    Phase = TimerPhase.Stopped;
+                    break;
+            }
+        }
+
         /// 15초를 넘기면 음수가 된다. Phase A에서는 벌점을 매기지 않는다.
         public double InspectionRemainingMs
             => Phase == TimerPhase.Inspection ? InspectionMs - (_now() - _inspectionStart) : 0d;

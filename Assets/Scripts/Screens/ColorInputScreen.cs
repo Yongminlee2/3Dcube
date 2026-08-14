@@ -165,7 +165,7 @@ namespace Cube.App
                 _p.TextPrimary, TextAnchor.MiddleLeft);
             _progress.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)_progress.transform,
-                new Vector2(0.06f, 0.925f), new Vector2(0.34f, 0.985f), Vector4.zero);
+                new Vector2(0.06f, 0.925f), new Vector2(0.25f, 0.985f), Vector4.zero);
 
             _instruction = UiKit.Label(_scanRoot, "Instruction", "", UiMetrics.Caption,
                 _p.TextSecondary, TextAnchor.MiddleLeft);
@@ -174,11 +174,19 @@ namespace Cube.App
             _instruction.resizeTextMinSize = 15;
             _instruction.resizeTextMaxSize = UiMetrics.Caption;
             UiKit.Stretch((RectTransform)_instruction.transform,
-                new Vector2(0.30f, 0.915f), new Vector2(0.80f, 0.988f), Vector4.zero);
+                new Vector2(0.25f, 0.950f), new Vector2(0.95f, 0.995f), Vector4.zero);
 
-            var orientation = UiKit.Artwork(_scanRoot, "OrientationCube", "UiArt/Size3Cube");
-            UiKit.Stretch((RectTransform)orientation.transform,
-                new Vector2(0.81f, 0.91f), new Vector2(0.95f, 0.995f), Vector4.zero);
+            var directionGuide = UiKit.Panel(_scanRoot, "OrientationGuide", new Color(0, 0, 0, 0));
+            UiKit.Stretch(directionGuide,
+                new Vector2(0.25f, 0.905f), new Vector2(0.95f, 0.950f), Vector4.zero);
+            _orientationGuide = UiKit.Label(directionGuide, "Label", "", 18,
+                _p.TextSecondary, TextAnchor.MiddleLeft);
+            _orientationGuide.fontStyle = FontStyle.Bold;
+            _orientationGuide.resizeTextForBestFit = true;
+            _orientationGuide.resizeTextMinSize = 15;
+            _orientationGuide.resizeTextMaxSize = 18;
+            UiKit.Stretch((RectTransform)_orientationGuide.transform,
+                Vector2.zero, Vector2.one, Vector4.zero);
 
             var cameraSlot = UiKit.Panel(_scanRoot, "CameraSlot", new Color(0f, 0f, 0f, 0f));
             UiKit.Stretch(cameraSlot,
@@ -249,21 +257,6 @@ namespace Cube.App
             _targetColorLabel.resizeTextMaxSize = 30;
             UiKit.Stretch((RectTransform)_targetColorLabel.transform,
                 new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), Vector4.zero);
-
-            var directionCard = UiKit.Panel(cameraCard, "OrientationGuide",
-                new Color(0.025f, 0.035f, 0.05f, 0.88f));
-            directionCard.GetComponent<Image>().sprite = UiKit.RoundedPill;
-            directionCard.GetComponent<Image>().type = Image.Type.Sliced;
-            UiKit.Stretch(directionCard,
-                new Vector2(0.08f, 0.755f), new Vector2(0.92f, 0.845f), Vector4.zero);
-            _orientationGuide = UiKit.Label(directionCard, "Label", "", 23,
-                Color.white, TextAnchor.MiddleCenter);
-            _orientationGuide.fontStyle = FontStyle.Bold;
-            _orientationGuide.resizeTextForBestFit = true;
-            _orientationGuide.resizeTextMinSize = 17;
-            _orientationGuide.resizeTextMaxSize = 23;
-            UiKit.Stretch((RectTransform)_orientationGuide.transform,
-                new Vector2(0.025f, 0.08f), new Vector2(0.975f, 0.92f), Vector4.zero);
 
             var strip = UiKit.Card(_scanRoot, "CapturedFaces", _p);
             UiKit.Stretch(strip,
@@ -674,7 +667,7 @@ namespace Cube.App
                 _targetColorLabel.color = luminance > 0.55f
                     ? new Color(0.04f, 0.05f, 0.07f) : Color.white;
                 _targetColorLabel.text =
-                    $"{_captureSlot + 1}/6  {FaceNames[(int)targetFace]}면 · {PhysicalColorNames[(int)targetFace]} 중심";
+                    $"{_captureSlot + 1}/6  {FaceNames[(int)targetFace]}면 촬영 · 가운데 {PhysicalColorNames[(int)targetFace]}";
             }
             if (_orientationGuide != null)
                 _orientationGuide.text = OrientationGuide(targetFace);
@@ -753,12 +746,12 @@ namespace Cube.App
         {
             switch (face)
             {
-                case Face.F: return "노랑 ↑    빨강 ←  중심  → 주황    흰색 ↓";
-                case Face.U: return "파랑 ↑    빨강 ←  중심  → 주황    초록 ↓";
-                case Face.D: return "초록 ↑    빨강 ←  중심  → 주황    파랑 ↓";
-                case Face.L: return "노랑 ↑    파랑 ←  중심  → 초록    흰색 ↓";
-                case Face.R: return "노랑 ↑    초록 ←  중심  → 파랑    흰색 ↓";
-                default: return "노랑 ↑    주황 ←  중심  → 빨강    흰색 ↓";
+                case Face.F: return "위 노랑 · 아래 흰색 · 왼쪽 빨강 · 오른쪽 주황";
+                case Face.U: return "위 파랑 · 아래 초록 · 왼쪽 빨강 · 오른쪽 주황";
+                case Face.D: return "위 초록 · 아래 파랑 · 왼쪽 빨강 · 오른쪽 주황";
+                case Face.L: return "위 노랑 · 아래 흰색 · 왼쪽 파랑 · 오른쪽 초록";
+                case Face.R: return "위 노랑 · 아래 흰색 · 왼쪽 초록 · 오른쪽 파랑";
+                default: return "위 노랑 · 아래 흰색 · 왼쪽 주황 · 오른쪽 빨강";
             }
         }
 

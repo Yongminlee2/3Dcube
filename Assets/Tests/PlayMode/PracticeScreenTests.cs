@@ -2,6 +2,7 @@ using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Cube.Core;
 using Cube.App;
 
@@ -16,6 +17,7 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             ThemeService.Init();
             AppSettings.AnimationMs = 0;          // 테스트에서는 애니메이션을 끈다
             AppBootstrap.StorePathOverride =
@@ -35,6 +37,7 @@ namespace Cube.App.Tests
             if (_screen != null) Object.DestroyImmediate(_screen.gameObject);
             if (_root != null) Object.DestroyImmediate(_root);
             if (_boot != null) Object.DestroyImmediate(_boot);
+            CubeProgressStore.ClearAll();
         }
 
         [UnityTest]
@@ -105,6 +108,71 @@ namespace Cube.App.Tests
             yield return null;
             Assert.IsTrue(_screen.Renderer.State.IsSolved());
             Assert.IsEmpty(_screen.CurrentScramble);
+        }
+
+        [UnityTest]
+        public IEnumerator 뒤로갔다_다시_열면_맞추던_상태를_이어간다()
+        {
+            _screen.Scramble();
+            yield return null;
+            var expected = _screen.Renderer.State.Clone();
+            string scramble = _screen.CurrentScramble;
+
+            Object.DestroyImmediate(_screen.gameObject);
+            _screen = new GameObject("PracticeReloaded").AddComponent<PracticeScreen>();
+            _screen.Build((RectTransform)_root.transform, 3);
+            yield return null;
+
+            Assert.IsTrue(expected.SameAs(_screen.Renderer.State));
+            Assert.AreEqual(scramble, _screen.CurrentScramble);
+        }
+
+        [UnityTest]
+        public IEnumerator 촬영한_실물큐브도_다시_열면_그대로_이어간다()
+        {
+            var photographed = CubeState.Solved(3);
+            photographed.Apply(new Move(Axis.X, 0, 1));
+            photographed.Apply(new Move(Axis.Z, 2, 3));
+            _screen.LoadState(photographed);
+            yield return null;
+
+            Object.DestroyImmediate(_screen.gameObject);
+            _screen = new GameObject("RealCubeReloaded").AddComponent<PracticeScreen>();
+            _screen.Build((RectTransform)_root.transform, 3);
+            yield return null;
+
+            Assert.IsTrue(photographed.SameAs(_screen.Renderer.State));
+        }
+
+        [UnityTest]
+        public IEnumerator 하단_섞기와_초기화는_확인한_뒤에만_실행된다()
+        {
+            var shuffle = _screen.transform.Find("Bar/Bar_섞기").GetComponent<Button>();
+            var overlay = _screen.transform.Find("ConfirmOverlay").gameObject;
+
+            shuffle.onClick.Invoke();
+            yield return null;
+            Assert.IsTrue(overlay.activeSelf);
+            Assert.IsTrue(_screen.Renderer.State.IsSolved(), "확인 전에는 섞이면 안 된다");
+
+            overlay.transform.Find("ConfirmCard/ConfirmCancel").GetComponent<Button>().onClick.Invoke();
+            Assert.IsFalse(overlay.activeSelf);
+            Assert.IsTrue(_screen.Renderer.State.IsSolved());
+
+            shuffle.onClick.Invoke();
+            overlay.transform.Find("ConfirmCard/ConfirmAccept").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Assert.IsFalse(_screen.Renderer.State.IsSolved());
+            var scrambled = _screen.Renderer.State.Clone();
+
+            var reset = _screen.transform.Find("Bar/Bar_초기화").GetComponent<Button>();
+            reset.onClick.Invoke();
+            yield return null;
+            Assert.IsTrue(scrambled.SameAs(_screen.Renderer.State), "확인 전에는 초기화되면 안 된다");
+
+            overlay.transform.Find("ConfirmCard/ConfirmAccept").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Assert.IsTrue(_screen.Renderer.State.IsSolved());
         }
 
         [UnityTest]

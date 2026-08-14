@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafc57a426d92374395443a5eaa0c179, type: 3}
+  m_Name: Skin_KawaiiPals
+  m_EditorClassIdentifier: Cube.Unity::Cube.App.Skin
+  DisplayName: "\uB9D0\uB791 \uCE5C\uAD6C\uB4E4"
+  CubeBody: {r: 0.03137255, g: 0.043137256, b: 0.078431375, a: 1}
+  CharacterArtwork: 1
+  StickerColors:
+  - {r: 1, g: 0.84705883, b: 0.23921569, a: 1}
+  - {r: 0.3019608, g: 0.7176471, b: 1, a: 1}
+  - {r: 1, g: 0.48235294, b: 0.5764706, a: 1}
+  - {r: 0.043137256, g: 0.4, b: 0.7647059, a: 1}
+  - {r: 0.9490196, g: 0.54901963, b: 0.15686275, a: 1}
+  - {r: 0.14509805, g: 0.6627451, b: 0.3529412, a: 1}
+  StickerTextures:
+  - {fileID: 2800000, guid: 440d29ae9428c814ba6599b3566278ce, type: 3}
+  - {fileID: 2800000, guid: 88433e4da6c935347bbebd58c401b0ec, type: 3}
+  - {fileID: 2800000, guid: 1d0aa5c6f9d010c4d83b76080b01a0f5, type: 3}
+  - {fileID: 2800000, guid: bae0a358999766a4c9fc1299cdc4b207, type: 3}
+  - {fileID: 2800000, guid: d454b63c3ba8a4f4aa98dc40ba1bdaea, type: 3}
+  - {fileID: 2800000, guid: 018d970f451e1b74eabe420f679ec288, type: 3}

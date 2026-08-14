@@ -19,6 +19,7 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             AppSettings.AnimationMs = 0;
             AppSettings.CubeSize = 3;
             _path = Path.Combine(Application.temporaryCachePath, "colorinput-test.json");
@@ -38,6 +39,7 @@ namespace Cube.App.Tests
             AppBootstrap.StorePathOverride = null;
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
+            CubeProgressStore.ClearAll();
         }
 
         [Test]
@@ -95,6 +97,13 @@ namespace Cube.App.Tests
 
             Assert.AreEqual(ScreenId.Practice, _router.Current, "연습 화면으로 넘어가야 한다");
             Assert.IsTrue(real.SameAs(_router.Practice.Renderer.State), "넣은 색 그대로 실려야 한다");
+
+            _router.Go(ScreenId.Home);
+            yield return null;
+            _router.StartPractice(3);
+            yield return null;
+            Assert.IsTrue(real.SameAs(_router.Practice.Renderer.State),
+                "촬영한 큐브도 다시 들어왔을 때 이어져야 한다");
         }
 
         [UnityTest]
@@ -216,11 +225,15 @@ namespace Cube.App.Tests
             StringAssert.Contains("초록색", target.text);
 
             var orientation = _input.transform.Find(
-                "ScanMode/CameraSlot/CameraCard/OrientationGuide/Label")
+                "ScanMode/OrientationGuide/Label")
                 .GetComponent<UnityEngine.UI.Text>();
             Assert.IsNotNull(orientation);
             StringAssert.Contains("빨강", orientation.text);
             StringAssert.Contains("주황", orientation.text);
+            StringAssert.Contains("왼쪽", orientation.text);
+            StringAssert.Contains("오른쪽", orientation.text);
+            Assert.IsFalse(orientation.text.Contains("중심"));
+            Assert.IsFalse(orientation.text.Contains("↑"));
         }
 
         [Test]

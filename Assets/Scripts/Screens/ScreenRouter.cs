@@ -94,14 +94,24 @@ namespace Cube.App
             Practice = null;
             Build(_canvasRect.GetComponent<Canvas>(), store);
 
-            // 연습·단계 화면은 큐브 상태에 매여 있어 그대로 되살릴 수 없다.
-            // 설정에서 바꾸는 것이니 설정에 남는 것이 자연스럽다.
+            // 연습·단계 화면의 진행 상태는 저장했지만, 설정에서 테마를 바꾸는
+            // 흐름이므로 설정 화면에 남겨 갑작스러운 복원 전환을 피한다.
             Go(wasOn == ScreenId.Practice || wasOn == ScreenId.Lesson ? ScreenId.Settings : wasOn);
         }
 
         /// 학습 홈에서 단계를 고르면 부른다.
         public void OpenLesson(int stage)
         {
+            if (Current == ScreenId.Practice)
+            {
+                Practice?.SaveProgress();
+                Go(ScreenId.Learn);
+            }
+            else if (Current == ScreenId.Lesson)
+            {
+                Lesson?.SaveProgress();
+                Go(ScreenId.Learn);
+            }
             Lesson.Open(stage);
             Go(ScreenId.Lesson);
         }
@@ -115,6 +125,12 @@ namespace Cube.App
         /// 홈에서 부르고, 테스트도 이 입구로 연습 화면을 연다.
         public void StartPractice(int cubeSize)
         {
+            if (Current == ScreenId.Lesson)
+            {
+                Lesson?.SaveProgress();
+                Go(ScreenId.Home);
+            }
+            if (Current == ScreenId.Practice) Practice?.SaveProgress();
             if (Practice != null)
             {
                 Practice.Solved -= OnSolved;
@@ -193,9 +209,9 @@ namespace Cube.App
                 switch (id)
                 {
                     case ScreenId.Lesson:
-                        // 설명 문구 아래, 코치 카드 위에 큐브를 둔다. 0.25는
-                        // Galaxy A16에서 안내 문구와 큐브가 겹칠 만큼 높았다.
-                        AppBootstrap.Instance.SetCubePresentation(0.68f, 0.125f);
+                        // 배우기에서도 일반 연습과 같은 크기와 중심을 쓴다.
+                        // 설명 묶음은 LessonScreen에서 화면 하단으로 내린다.
+                        AppBootstrap.Instance.SetCubePresentation(1f, 0.04f);
                         break;
                     case ScreenId.Library:
                         AppBootstrap.Instance.SetCubePresentation(0.52f, 0.28f);
@@ -215,6 +231,7 @@ namespace Cube.App
             }
 
             if (id == ScreenId.Records) Records.Show(AppSettings.CubeSize);
+            if (id == ScreenId.Home) _home.RefreshContinueState();
             if (id == ScreenId.Settings) _settings.RefreshLabels();
             if (id == ScreenId.Learn) Learn.Refresh();   // 진도가 바뀌었을 수 있다
             if (id == ScreenId.Library) Library.ResetCube();

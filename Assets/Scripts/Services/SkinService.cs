@@ -29,7 +29,10 @@ namespace Cube.App
         {
             if (_all == null || _all.Length == 0)
             {
-                _all = Resources.LoadAll<Skin>("Skins").OrderBy(s => s.name).ToArray();
+                _all = Resources.LoadAll<Skin>("Skins")
+                    .OrderBy(s => s.CharacterArtwork ? 1 : 0)
+                    .ThenBy(s => s.name)
+                    .ToArray();
                 if (_all.Length == 0)
                     throw new MissingReferenceException(
                         "Assets/Resources/Skins에 스킨 에셋이 없다. ProjectSetup.CreateAssets를 돌릴 것");
@@ -46,6 +49,16 @@ namespace Cube.App
             if (skin == null || skin == _current) return;
             _current = skin;
             AppSettings.SkinName = skin.name;
+            Changed?.Invoke(_current);
+        }
+
+        public static SkinArtworkLayout ArtworkLayout => AppSettings.SkinArtworkLayout;
+
+        public static void SetArtworkLayout(SkinArtworkLayout layout)
+        {
+            Init();
+            if (AppSettings.SkinArtworkLayout == layout) return;
+            AppSettings.SkinArtworkLayout = layout;
             Changed?.Invoke(_current);
         }
     }

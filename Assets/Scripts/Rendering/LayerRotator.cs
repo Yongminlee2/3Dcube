@@ -54,17 +54,26 @@ namespace Cube.App
 
             FinishAllImmediately();
 
-            var state = _renderer.State;
             foreach (var m in moves)
             {
-                state.Apply(m);
+                var cubies = _renderer.CubiesInLayer(m);
+                _renderer.State.Apply(m);
+                _renderer.CommitPermutation(m);
+
+                // 애니메이션만 생략하고 큐비와 스티커 자체는 정확히 회전시킨다.
+                // 상태만 바꾼 뒤 Build하면 한 면 일러스트의 조각 정체성이 사라져,
+                // 색은 맞아도 그림은 다시 이어지지 않는다.
+                var rotation = Quaternion.AngleAxis(TotalAngle(m), CubeRenderer.UnityAxis(m.Axis));
+                foreach (var cubie in cubies)
+                {
+                    if (cubie == null) continue;
+                    cubie.localPosition = rotation * cubie.localPosition;
+                    cubie.localRotation = rotation * cubie.localRotation;
+                }
                 MoveApplied?.Invoke(m);
             }
 
-            // 회전 애니메이션을 건너뛰면 큐비의 방향이 상태와 어긋난다.
-            // 자리만 옮기고 돌리지 않으면 스티커가 뒤를 보고 몸통만 보인다 —
-            // 실기기에서 정확히 그랬다. 상태에서 통째로 다시 짓는 편이 확실하다.
-            _renderer.Build(state);
+            SnapAll();
         }
 
         public void Enqueue(Move m)

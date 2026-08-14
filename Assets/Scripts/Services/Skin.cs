@@ -2,12 +2,21 @@ using UnityEngine;
 
 namespace Cube.App
 {
+    public enum SkinArtworkLayout
+    {
+        RepeatPerSticker = 0,
+        WholeFace = 1,
+    }
+
     /// 큐브 겉모습 하나. 다크/라이트 팔레트와는 독립적으로 고른다.
     [CreateAssetMenu(menuName = "Cube/Skin")]
     public sealed class Skin : ScriptableObject
     {
         public string DisplayName;
         public Color CubeBody;
+
+        /// 캐릭터 일러스트 스킨은 재질/색상 스킨 뒤, 목록 맨 아래에 모아 보여 준다.
+        public bool CharacterArtwork;
 
         /// 면 번호 순서: U, D, F, B, L, R
         public Color[] StickerColors = new Color[6];

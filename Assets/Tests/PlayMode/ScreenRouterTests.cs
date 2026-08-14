@@ -17,8 +17,10 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             AppSettings.AnimationMs = 0;
             AppSettings.CubeSize = 3;
+            AppSettings.CubeSound = CubeSoundMode.Classic;
             _path = Path.Combine(Application.temporaryCachePath, "router-test.json");
             if (File.Exists(_path)) File.Delete(_path);
 
@@ -33,9 +35,11 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             AppSettings.AnimationMs = 120;
+            AppSettings.CubeSound = CubeSoundMode.Classic;
             AppBootstrap.StorePathOverride = null;
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
+            CubeProgressStore.ClearAll();
         }
 
         [UnityTest]
@@ -44,6 +48,39 @@ namespace Cube.App.Tests
             yield return null;
             Assert.AreEqual(ScreenId.Home, _router.Current);
             Assert.IsNull(_router.Practice, "연습 화면은 시작하기 전까지 만들지 않는다");
+        }
+
+        [UnityTest]
+        public IEnumerator 설정에서_기본음_실제큐브음_끄기를_고를_수_있다()
+        {
+            _router.Go(ScreenId.Settings);
+            yield return null;
+
+            var row = AppBootstrap.Instance.UiCanvas.transform
+                .Find("SafeAreaRoot/SettingsScreen/Row_효과음");
+            var button = row.GetComponent<Button>();
+            var value = row.Find("Value").GetComponent<Text>();
+            Assert.AreEqual("기본", value.text);
+
+            button.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(CubeSoundMode.Cute, AppSettings.CubeSound);
+            Assert.AreEqual("말랑 팝", value.text);
+
+            button.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(CubeSoundMode.Realistic, AppSettings.CubeSound);
+            Assert.AreEqual("실제 큐브", value.text);
+
+            button.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(CubeSoundMode.Off, AppSettings.CubeSound);
+            Assert.AreEqual("끔", value.text);
+
+            button.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(CubeSoundMode.Classic, AppSettings.CubeSound);
+            Assert.AreEqual("기본", value.text);
         }
 
         [UnityTest]
@@ -96,6 +133,25 @@ namespace Cube.App.Tests
             _router.Go(ScreenId.Home);
             yield return null;
             Assert.IsFalse(AppBootstrap.Instance.CubeRoot.gameObject.activeSelf);
+        }
+
+        [UnityTest]
+        public IEnumerator 미완료_연습이_있으면_홈에_이어하기로_표시된다()
+        {
+            _router.StartPractice(3);
+            _router.Practice.ApplyMove(new Cube.Core.Move(Cube.Core.Axis.X, 0, 1));
+            yield return null;
+
+            _router.Go(ScreenId.Home);
+            yield return null;
+            var label = AppBootstrap.Instance.UiCanvas.transform
+                .Find("SafeAreaRoot/HomeScreen/Menu_연습 시작/Label")
+                .GetComponent<Text>();
+            Assert.AreEqual("이어하기", label.text);
+
+            _router.StartPractice(3);
+            yield return null;
+            Assert.IsFalse(_router.Practice.Renderer.State.IsSolved());
         }
 
         [UnityTest]

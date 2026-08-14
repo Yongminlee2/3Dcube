@@ -42,6 +42,47 @@ namespace Cube.Core.Tests
             }
         }
 
+        [TestCase("U U'", "")]
+        [TestCase("U U", "U2")]
+        [TestCase("U U' U", "U")]
+        [TestCase("U U U U", "")]
+        [TestCase("R R' U U' F2 F2", "")]
+        public void 의미없이_반복되는_같은면_회전을_축약한다(string input, string expected)
+        {
+            string simplified = HintEngine.SimplifyNotation(input);
+            Assert.AreEqual(expected, simplified);
+
+            var before = CubeState.Solved(3);
+            before.Apply(MoveNotation.Parse(input, 3));
+            var after = CubeState.Solved(3);
+            after.Apply(MoveNotation.Parse(simplified, 3));
+            Assert.IsTrue(before.SameAs(after), $"{input} -> {simplified}");
+        }
+
+        [Test]
+        public void 생성된_힌트에는_바로_취소하거나_합칠_회전이_없다()
+        {
+            for (int seed = 0; seed < 10; seed++)
+            {
+                var cube = Scrambled(seed);
+                for (int round = 0; round < 80 && !cube.IsSolved(); round++)
+                {
+                    var hint = HintEngine.Next(cube);
+                    if (!hint.HasMove) break;
+
+                    var moves = MoveNotation.Parse(hint.Notation, 3);
+                    for (int i = 1; i < moves.Count; i++)
+                    {
+                        bool sameLayer = moves[i - 1].Axis == moves[i].Axis
+                            && moves[i - 1].Layer == moves[i].Layer;
+                        Assert.IsFalse(sameLayer,
+                            $"seed={seed}: 축약되지 않은 힌트 '{hint.Notation}'");
+                    }
+                    cube.Apply(moves);
+                }
+            }
+        }
+
         [Test]
         public void 힌트에는_버튼이_없는_y_전체회전이_나오지_않는다()
         {

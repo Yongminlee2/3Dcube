@@ -29,13 +29,13 @@ namespace Cube.App
         Image _statusInfoIcon, _statusSuccessIcon;
         Lesson _lesson;
         int _page;
+        bool _stageCompleted;
+        bool _restoringProgress;
 
-        // 연습 화면과 동떨어져 보이지 않게 충분히 내리되, 설명 카드를 침범하지
-        // 않도록 읽기 화면에서는 크기를 한 단계 줄여 카드 바로 위에 맞춘다.
-        const float ReadingCubeScale = 0.68f;
-        const float ReadingCubeLift = 0.125f;
-        const float PracticeCubeScale = 0.95f;
-        const float PracticeCubeLift = 0.04f;
+        // 읽기와 직접 연습 모두 일반 연습 화면과 같은 크기·중심을 쓴다.
+        // 화면마다 큐브 크기가 튀면 손으로 잡았을 때 거리감도 달라 보인다.
+        const float LessonCubeScale = 1f;
+        const float LessonCubeLift = 0.04f;
 
         // 설명 읽기 전용 요소(코치 카드·페이지 넘김·공식 목록)를 한데 묶는다.
         // 연습하기를 누르면 이 묶음을 통째로 숨기고 큐브를 크게, 가운데로 —
@@ -87,7 +87,7 @@ namespace Cube.App
         {
             var card = UiKit.Card(_explainGroup.transform, "CoachCard", _p, raised: true);
             UiKit.Stretch(card,
-                new Vector2(0.055f, 0.385f), new Vector2(0.945f, 0.525f), Vector4.zero);
+                new Vector2(0.055f, 0.24f), new Vector2(0.945f, 0.345f), Vector4.zero);
             UiKit.AddSoftOutline(card.GetComponent<Image>(), _p.Border, 1f);
 
             var plate = UiKit.IconPlate(card, "CoachIcon", "book-2", _p, _p.Accent);
@@ -112,7 +112,7 @@ namespace Cube.App
             _prev = UiKit.Button(_explainGroup.transform, "Prev", "이전", _p,
                 () => TurnPage(-1), ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_prev.transform,
-                new Vector2(0.055f, 0.31f), new Vector2(0.305f, 0.375f), Vector4.zero);
+                new Vector2(0.055f, 0.175f), new Vector2(0.305f, 0.23f), Vector4.zero);
             StylePagerButton(_prev, "arrow-left", iconOnRight: false);
 
             var pagePill = UiKit.Panel(_explainGroup.transform, "PagePill", _p.SurfaceMuted);
@@ -120,7 +120,7 @@ namespace Cube.App
             pageImage.sprite = UiKit.RoundedPill;
             pageImage.type = Image.Type.Sliced;
             UiKit.Stretch(pagePill,
-                new Vector2(0.365f, 0.315f), new Vector2(0.635f, 0.37f), Vector4.zero);
+                new Vector2(0.365f, 0.18f), new Vector2(0.635f, 0.225f), Vector4.zero);
 
             _pageLabel = UiKit.Label(pagePill, "Page", "", 22, _p.TextSecondary);
             _pageLabel.fontStyle = FontStyle.Bold;
@@ -130,7 +130,7 @@ namespace Cube.App
             _next = UiKit.Button(_explainGroup.transform, "Next", "다음", _p,
                 () => TurnPage(1), ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_next.transform,
-                new Vector2(0.695f, 0.31f), new Vector2(0.945f, 0.375f), Vector4.zero);
+                new Vector2(0.695f, 0.175f), new Vector2(0.945f, 0.23f), Vector4.zero);
             StylePagerButton(_next, "chevron-right", iconOnRight: true);
         }
 
@@ -158,12 +158,12 @@ namespace Cube.App
                 UiMetrics.SectionTitle, _p.TextPrimary, TextAnchor.MiddleLeft);
             heading.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)heading.transform,
-                new Vector2(0.055f, 0.272f), new Vector2(0.945f, 0.307f), Vector4.zero);
+                new Vector2(0.055f, 0.145f), new Vector2(0.945f, 0.175f), Vector4.zero);
 
             var scroll = UiKit.ScrollList(_explainGroup.transform, "Algorithms", _p,
                 out var content, spacing: 8f, padding: 2f);
             UiKit.Stretch((RectTransform)scroll.transform,
-                new Vector2(0.055f, 0.165f), new Vector2(0.945f, 0.272f), Vector4.zero);
+                new Vector2(0.055f, 0.09f), new Vector2(0.945f, 0.142f), Vector4.zero);
             _algRoot = content;
         }
 
@@ -171,7 +171,7 @@ namespace Cube.App
         {
             _statusCard = UiKit.Card(transform, "StatusCard", _p);
             UiKit.Stretch(_statusCard,
-                new Vector2(0.055f, 0.105f), new Vector2(0.945f, 0.155f), Vector4.zero);
+                new Vector2(0.055f, 0.09f), new Vector2(0.945f, 0.13f), Vector4.zero);
             UiKit.AddSoftOutline(_statusCard.GetComponent<Image>(), _p.Border, 0.8f);
 
             _statusInfoIcon = UiKit.Icon(_statusCard, "InfoIcon", "sparkles", _p.Accent);
@@ -196,19 +196,19 @@ namespace Cube.App
             _practice = UiKit.Button(transform, "Practice", "연습하기", _p,
                 Practice, ButtonVariant.Primary);
             UiKit.Stretch((RectTransform)_practice.transform,
-                new Vector2(0.055f, 0.015f), new Vector2(0.425f, 0.095f), Vector4.zero);
+                new Vector2(0.055f, 0.015f), new Vector2(0.425f, 0.085f), Vector4.zero);
             StyleActionButton(_practice, "player-play", _p.TextOnAccent, 0.28f);
 
             _hint = UiKit.Button(transform, "Hint", "힌트", _p,
                 ShowHint, ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_hint.transform,
-                new Vector2(0.445f, 0.015f), new Vector2(0.69f, 0.095f), Vector4.zero);
+                new Vector2(0.445f, 0.015f), new Vector2(0.69f, 0.085f), Vector4.zero);
             StyleActionButton(_hint, "sparkles", _p.Accent, 0.32f);
 
             _rewind = UiKit.Button(transform, "Rewind", "처음으로", _p,
                 ResetCube, ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_rewind.transform,
-                new Vector2(0.71f, 0.015f), new Vector2(0.945f, 0.095f), Vector4.zero);
+                new Vector2(0.71f, 0.015f), new Vector2(0.945f, 0.085f), Vector4.zero);
             StyleActionButton(_rewind, "arrow-left", _p.TextSecondary, 0.32f);
         }
 
@@ -263,25 +263,42 @@ namespace Cube.App
             return c != null ? c : go.AddComponent<T>();
         }
 
-        /// 단계를 연다. 큐브는 완성 상태에서 시작한다.
+        /// 단계를 연다. 저장된 설명 페이지와 큐브가 있으면 그 자리에서 이어 간다.
         public void Open(int stage)
         {
             Stage = stage;
             _lesson = LessonData.Get(stage);
-            _page = 0;
-            InPractice = false;
+            _stageCompleted = false;
+            var saved = CubeProgressStore.LoadLesson(stage);
+            var savedState = saved?.ToState();
+            _page = saved != null
+                ? Mathf.Clamp(saved.Page, 0, _lesson.Steps.Length - 1)
+                : 0;
+            InPractice = saved != null && saved.InPractice;
 
-            ResetCube();
+            _restoringProgress = true;
+            PrepareCube(savedState ?? CubeState.Solved(3));
+            _restoringProgress = false;
             _title.text = $"{stage}단계 · {_lesson.Title}";
-            SetStatus("");
             BuildAlgorithmCards();
             ShowPage();
+            SetStatus(InPractice ? "저장한 연습 상태를 이어서 시작합니다." : "");
+            RefreshPracticeLayout();
         }
 
         void ResetCube()
         {
+            PrepareCube(CubeState.Solved(3));
+            InPractice = false;
+            SetStatus("");
+            RefreshPracticeLayout();
+            SaveProgress();
+        }
+
+        void PrepareCube(CubeState state)
+        {
             _rotator.FinishAllImmediately();
-            _renderer.Build(CubeState.Solved(3));
+            _renderer.Build(state ?? CubeState.Solved(3));
             _rotator.Init(_renderer);
             _rotator.MoveApplied -= OnMoveApplied;
             _rotator.MoveApplied += OnMoveApplied;
@@ -291,10 +308,6 @@ namespace Cube.App
             orbit.Init(_renderer.transform);
             if (cam != null) _touch.Init(cam, _renderer, _rotator, orbit);
             _player.Init(_renderer, _rotator, _touch);
-
-            InPractice = false;
-            SetStatus("");
-            RefreshPracticeLayout();
         }
 
         /// 연습하기를 누르면 설명 요소를 통째로 숨기고 큐브를 크게, 화면
@@ -304,9 +317,7 @@ namespace Cube.App
             if (_explainGroup != null) _explainGroup.SetActive(!InPractice);
             if (_padRoot != null) _padRoot.SetActive(InPractice && AppSettings.ShowPad);
             if (AppBootstrap.Instance == null) return;
-            AppBootstrap.Instance.SetCubePresentation(
-                InPractice ? PracticeCubeScale : ReadingCubeScale,
-                InPractice ? PracticeCubeLift : ReadingCubeLift);
+            AppBootstrap.Instance.SetCubePresentation(LessonCubeScale, LessonCubeLift);
         }
 
         void BuildAlgorithmCards()
@@ -415,6 +426,7 @@ namespace Cube.App
             if (next == _page) return;
             _page = next;
             ShowPage();
+            SaveProgress();
         }
 
         /// 단계 직전 상태를 만든다. 사용자가 맞추면 통과 판정을 한다.
@@ -426,14 +438,26 @@ namespace Cube.App
             InPractice = true;
             SetStatus("직접 맞춰 보세요.");
             RefreshPracticeLayout();
+            SaveProgress();
         }
 
         void OnMoveApplied(Move m)
         {
-            if (!InPractice || _renderer.State == null) return;
-            if (!StageChecker.Passed(_renderer.State, Stage)) return;
+            if (_renderer.State == null) return;
+            if (!InPractice)
+            {
+                SaveProgress();
+                return;
+            }
+            if (!StageChecker.Passed(_renderer.State, Stage))
+            {
+                SaveProgress();
+                return;
+            }
 
             InPractice = false;
+            _stageCompleted = true;
+            CubeProgressStore.ClearLesson(Stage);
             LearnProgress.MarkDone(Stage);
             string message = Stage < StageChecker.LastStage
                 ? $"통과했습니다. {Stage + 1}단계가 열렸습니다."
@@ -460,6 +484,7 @@ namespace Cube.App
         // 연습 화면과 큐브 부품을 공유하므로 화면이 보이는 동안에만 구독한다.
         void OnDisable()
         {
+            SaveProgress();
             if (_rotator != null) _rotator.MoveApplied -= OnMoveApplied;
         }
 
@@ -473,6 +498,25 @@ namespace Cube.App
         void OnDestroy()
         {
             if (_rotator != null) _rotator.MoveApplied -= OnMoveApplied;
+        }
+
+        void OnApplicationPause(bool paused)
+        {
+            if (paused && gameObject.activeInHierarchy) SaveProgress();
+        }
+
+        public void SaveProgress()
+        {
+            if (_restoringProgress || _stageCompleted || Stage < 1 || _lesson == null
+                || _renderer == null || _renderer.State == null) return;
+
+            CubeProgressStore.SaveLesson(new LessonProgressSnapshot
+            {
+                Stage = Stage,
+                FaceletsBase64 = CubeProgressStore.EncodeState(_renderer.State),
+                Page = _page,
+                InPractice = InPractice,
+            });
         }
     }
 }

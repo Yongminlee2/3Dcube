@@ -1,0 +1,15 @@
+{
+  "id": "MoonlightResort",
+  "displayName": "문라이트 리조트",
+  "bodyColorHex": "#080B18",
+  "characterArtwork": true,
+  "generationDisclosure": "OpenAI built-in ImageGen으로 제작한 성인 캐릭터 오리지널 일러스트",
+  "faces": {
+    "u": { "representativeHex": "#783DA8", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" },
+    "d": { "representativeHex": "#36BFD0", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" },
+    "f": { "representativeHex": "#E85D65", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" },
+    "b": { "representativeHex": "#315DC4", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" },
+    "l": { "representativeHex": "#E58C28", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" },
+    "r": { "representativeHex": "#289665", "sourceUrl": "OpenAI built-in ImageGen", "license": "project-generated" }
+  }
+}

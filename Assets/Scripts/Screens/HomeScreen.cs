@@ -15,6 +15,7 @@ namespace Cube.App
         Palette _p;
         Text _notice;
         Text _learnProgress;
+        Text _practiceLabel;
         Action _onLearn;
 
         public void Build(RectTransform parent, Action<int> onPractice, Action onLearn,
@@ -37,10 +38,10 @@ namespace Cube.App
                 () => onPractice?.Invoke(_size), ButtonVariant.Primary);
             UiKit.Stretch((RectTransform)practice.transform,
                 new Vector2(0.05f, 0.405f), new Vector2(0.95f, 0.485f), Vector4.zero);
-            var practiceLabel = practice.GetComponentInChildren<Text>();
-            practiceLabel.fontSize = 35;
-            practiceLabel.fontStyle = FontStyle.Bold;
-            UiKit.Stretch((RectTransform)practiceLabel.transform,
+            _practiceLabel = practice.GetComponentInChildren<Text>();
+            _practiceLabel.fontSize = 35;
+            _practiceLabel.fontStyle = FontStyle.Bold;
+            UiKit.Stretch((RectTransform)_practiceLabel.transform,
                 new Vector2(0.37f, 0f), new Vector2(0.75f, 1f), Vector4.zero);
             var play = UiKit.Icon(practice.transform, "PlayIcon", "player-play", _p.TextOnAccent);
             UiKit.Stretch((RectTransform)play.transform,
@@ -57,7 +58,7 @@ namespace Cube.App
                 "cube", new Vector2(0.05f, 0.14f), new Vector2(0.335f, 0.245f), onColorInput);
             BuildUtilityCard("Menu_기록", "기록", "연습 기록",
                 "chart-bar", new Vector2(0.3575f, 0.14f), new Vector2(0.6425f, 0.245f), onRecords);
-            BuildUtilityCard("Menu_스킨", "큐브 스킨", "색감 선택",
+            BuildUtilityCard("Menu_스킨", "큐브 스킨", "색상 · 캐릭터",
                 "palette", new Vector2(0.665f, 0.14f), new Vector2(0.95f, 0.245f), onSkins);
 
             _notice = UiKit.Label(transform, "Notice", "", 22, _p.Warning, TextAnchor.MiddleCenter);
@@ -67,6 +68,7 @@ namespace Cube.App
 
             RefreshSizeButtons();
             RefreshProgress();
+            RefreshContinueState();
         }
 
         void BuildHeader(Action onSettings)
@@ -234,7 +236,11 @@ namespace Cube.App
             UiKit.Stretch(plate, new Vector2(0.055f, 0.29f), new Vector2(0.265f, 0.71f), Vector4.zero);
         }
 
-        void OnEnable() => RefreshProgress();
+        void OnEnable()
+        {
+            RefreshProgress();
+            RefreshContinueState();
+        }
 
         void RefreshProgress()
         {
@@ -261,6 +267,15 @@ namespace Cube.App
             AppSettings.CubeSize = size;
             if (_notice != null) _notice.text = "";
             RefreshSizeButtons();
+            RefreshContinueState();
+        }
+
+        public void RefreshContinueState()
+        {
+            if (_practiceLabel == null) return;
+            _practiceLabel.text = CubeProgressStore.HasUnfinishedPractice(_size)
+                ? "이어하기"
+                : "연습 시작";
         }
 
         void RefreshSizeButtons()

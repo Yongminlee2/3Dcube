@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             AppSettings.AnimationMs = 0;
             AppSettings.CubeSize = 3;
             _path = Path.Combine(Application.temporaryCachePath, "hintui-test.json");
@@ -37,6 +39,7 @@ namespace Cube.App.Tests
             AppBootstrap.StorePathOverride = null;
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
+            CubeProgressStore.ClearAll();
         }
 
         [UnityTest]
@@ -103,6 +106,93 @@ namespace Cube.App.Tests
             yield return null;
 
             Assert.IsTrue(before.SameAs(practice.Renderer.State), "4x4에서 힌트가 큐브를 움직였다");
+        }
+
+        [UnityTest]
+        public IEnumerator 영어로_나열된_힌트만_순서대로_따라가면_끝까지_풀린다()
+        {
+            var practice = _router.Practice;
+            var notation = practice.transform.Find("Hint/HintNotation").GetComponent<Text>();
+
+            for (int seed = 0; seed < 10; seed++)
+            {
+                var state = CubeState.Solved(3);
+                string scramble = Scrambler.Generate(3, new System.Random(seed));
+                state.Apply(MoveNotation.Parse(scramble, 3));
+                practice.LoadState(state);
+                yield return null;
+
+                int hintGroups = 0;
+                int applied = 0;
+                while (!practice.Renderer.State.IsSolved() && hintGroups < 300 && applied < 1200)
+                {
+                    practice.ShowHint();
+                    string sequence = notation.text;
+                    Assert.IsNotEmpty(sequence, $"seed={seed}: 빈 힌트가 나왔다");
+                    Assert.AreEqual(sequence, HintEngine.SimplifyNotation(sequence),
+                        $"seed={seed}: 의미 없는 반복이 남았다 — '{sequence}'");
+
+                    foreach (var move in ManualButtonMoves(sequence))
+                    {
+                        practice.ApplyMove(move);
+                        applied++;
+                    }
+                    hintGroups++;
+                    yield return null;
+                }
+
+                Assert.IsTrue(practice.Renderer.State.IsSolved(),
+                    $"seed={seed}: 힌트 {hintGroups}묶음, {applied}동작을 따라도 풀리지 않았다");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator 공식_일부만_실행하고_힌트를_다시_눌러도_지난_동작은_나오지_않는다()
+        {
+            var practice = _router.Practice;
+            var notation = practice.transform.Find("Hint/HintNotation").GetComponent<Text>();
+            var state = CubeState.Solved(3);
+            state.Apply(MoveNotation.Parse(Scrambler.Generate(3, new System.Random(7)), 3));
+            practice.LoadState(state);
+            yield return null;
+
+            practice.ShowHint();
+            string original = notation.text;
+            var manualMoves = ManualButtonMoves(original);
+            Assert.Greater(manualMoves.Count, 2, $"부분 실행을 검사하기에 힌트가 너무 짧다 — '{original}'");
+
+            int prefixCount = Mathf.Min(3, manualMoves.Count - 1);
+            for (int i = 0; i < prefixCount; i++) practice.ApplyMove(manualMoves[i]);
+
+            string expectedRemaining = HintEngine.SimplifyNotation(
+                MoveNotation.Format(manualMoves.GetRange(prefixCount, manualMoves.Count - prefixCount), 3));
+            Assert.AreEqual(expectedRemaining, notation.text,
+                $"이미 실행한 앞부분이 남은 수식에서 빠지지 않았다 — 원본 '{original}'");
+
+            string beforePress = notation.text;
+            practice.ShowHint();
+            Assert.AreEqual(beforePress, notation.text,
+                "공식 도중 힌트를 다시 누르자 과거 경로로 재계산됐다");
+            yield return null;
+        }
+
+        static List<Move> ManualButtonMoves(string sequence)
+        {
+            var result = new List<Move>();
+            foreach (var move in MoveNotation.Parse(sequence, 3))
+            {
+                if (move.Turns == 2)
+                {
+                    int quarterTurn = move.Layer == 2 ? 3 : 1;
+                    result.Add(new Move(move.Axis, move.Layer, quarterTurn));
+                    result.Add(new Move(move.Axis, move.Layer, quarterTurn));
+                }
+                else
+                {
+                    result.Add(move);
+                }
+            }
+            return result;
         }
 
         [UnityTest]

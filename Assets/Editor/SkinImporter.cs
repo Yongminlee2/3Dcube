@@ -39,6 +39,7 @@ namespace CubeEditor
             public string id;
             public string displayName;
             public string bodyColorHex;
+            public bool characterArtwork;
             public string generationDisclosure;
             public FacesMeta faces;
         }
@@ -111,6 +112,7 @@ namespace CubeEditor
             var skin = ScriptableObject.CreateInstance<Cube.App.Skin>();
             skin.DisplayName = string.IsNullOrEmpty(meta.displayName) ? meta.id : meta.displayName;
             skin.CubeBody = Hex(meta.bodyColorHex);
+            skin.CharacterArtwork = meta.characterArtwork;
             skin.StickerColors = colors;
             skin.StickerTextures = textures;
 

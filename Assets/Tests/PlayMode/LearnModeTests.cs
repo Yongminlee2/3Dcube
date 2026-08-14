@@ -17,6 +17,7 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             AppSettings.AnimationMs = 0;
             AppSettings.CubeSize = 3;
             AppSettings.ShowPad = true;
@@ -39,6 +40,7 @@ namespace Cube.App.Tests
             LearnProgress.Reset();
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
+            CubeProgressStore.ClearAll();
         }
 
         [Test]
@@ -80,22 +82,38 @@ namespace Cube.App.Tests
             Assert.AreEqual(1, _router.Lesson.Stage);
             Assert.IsTrue(AppBootstrap.Instance.CubeRoot.gameObject.activeSelf, "단계 화면에서는 큐브를 보여준다");
 
-            float cubeCenter = AppBootstrap.Instance.CubeCamera
+            float lessonCubeCenter = AppBootstrap.Instance.CubeCamera
                 .WorldToViewportPoint(AppBootstrap.Instance.CubeRoot.position).y;
-            Assert.That(cubeCenter, Is.InRange(0.60f, 0.66f),
-                "설명 중 큐브는 연습 위치에 가깝되 코치 카드 위에 있어야 한다");
+            float lessonCubeScale = AppBootstrap.Instance.CubeRoot.localScale.x;
+            Assert.That(lessonCubeCenter, Is.InRange(0.53f, 0.55f),
+                "배우기 큐브 중심은 일반 연습과 같은 높이여야 한다");
+            Assert.That(lessonCubeScale, Is.EqualTo(1f).Within(0.001f),
+                "배우기 큐브는 일반 연습과 같은 크기여야 한다");
 
-            Assert.LessOrEqual(AppBootstrap.Instance.CubeRoot.localScale.x, 0.70f,
-                "설명 화면 큐브가 커져 코치 카드를 침범하면 안 된다");
+            _router.StartPractice(3);
+            yield return null;
+            float practiceCubeCenter = AppBootstrap.Instance.CubeCamera
+                .WorldToViewportPoint(AppBootstrap.Instance.CubeRoot.position).y;
+            Assert.That(AppBootstrap.Instance.CubeRoot.localScale.x,
+                Is.EqualTo(lessonCubeScale).Within(0.001f));
+            Assert.That(practiceCubeCenter, Is.EqualTo(lessonCubeCenter).Within(0.001f));
 
             var coach = _router.Lesson.transform.Find("ExplainGroup/CoachCard") as RectTransform;
             var pager = _router.Lesson.transform.Find("ExplainGroup/PagePill") as RectTransform;
+            var algorithms = _router.Lesson.transform.Find("ExplainGroup/Algorithms") as RectTransform;
             Assert.IsNotNull(coach);
             Assert.IsNotNull(pager);
-            Assert.LessOrEqual(coach.anchorMax.y, 0.53f,
-                "코치 설명 카드는 큐브 아래쪽으로 내려와야 한다");
-            Assert.LessOrEqual(pager.anchorMax.y, 0.38f,
-                "페이지 버튼 묶음도 코치 설명과 함께 내려와야 한다");
+            Assert.IsNotNull(algorithms);
+            Assert.LessOrEqual(coach.anchorMax.y, 0.35f,
+                "코치 설명 카드는 화면 하단 묶음에 붙어야 한다");
+            Assert.LessOrEqual(pager.anchorMax.y, 0.23f,
+                "페이지 버튼도 설명 카드 바로 아래에 붙어야 한다");
+            Assert.LessOrEqual(algorithms.anchorMax.y, 0.15f,
+                "공식 설명도 하단 동작 버튼 가까이에 붙어야 한다");
+            Assert.LessOrEqual(algorithms.anchorMin.y - 0.085f, 0.01f,
+                "공식 카드와 하단 동작 버튼 사이에 큰 빈 공간이 없어야 한다");
+            Assert.GreaterOrEqual(algorithms.anchorMax.y - algorithms.anchorMin.y, 0.05f,
+                "공식 카드의 두 줄 설명이 잘리지 않을 높이가 필요하다");
         }
 
         [UnityTest]
@@ -184,6 +202,27 @@ namespace Cube.App.Tests
             _router.Lesson.Pad.Press("R");
             yield return null;
             Assert.IsFalse(before.SameAs(CubeStateNow()));
+        }
+
+        [UnityTest]
+        public IEnumerator 배우기_연습도_나갔다_들어오면_같은_상태에서_이어간다()
+        {
+            _router.OpenLesson(3);
+            yield return null;
+            _router.Lesson.Practice();
+            yield return null;
+            _router.Lesson.Pad.Press("R");
+            yield return null;
+            var expected = CubeStateNow().Clone();
+
+            _router.Go(ScreenId.Learn);
+            yield return null;
+            _router.OpenLesson(3);
+            yield return null;
+
+            Assert.IsTrue(_router.Lesson.InPractice);
+            Assert.IsTrue(expected.SameAs(CubeStateNow()));
+            Assert.IsTrue(_router.Lesson.Pad.gameObject.activeSelf);
         }
 
         static CubeState CubeStateNow()

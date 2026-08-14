@@ -163,7 +163,35 @@ namespace Cube.Core
         /// 누적한 뒤 이후 면 회전을 고정된 U/D/L/R/F/B 기준으로 치환한다.
         /// 마지막에 남는 전체 방향은 단계 판정에 영향을 주지 않으므로 버린다.
         static Hint ManualHint(int stage, string notation, string reason)
-            => new Hint(stage, RemoveWholeCubeY(notation), reason);
+            => new Hint(stage, SimplifyNotation(RemoveWholeCubeY(notation)), reason);
+
+        /// <summary>
+        /// 힌트에 보여 줄 연속 회전을 사람이 따라 할 수 있는 가장 짧은 표기로 줄인다.
+        /// U U'는 사라지고, U U는 U2, U U' U는 U 한 번이 된다.
+        /// </summary>
+        public static string SimplifyNotation(string notation)
+        {
+            if (string.IsNullOrWhiteSpace(notation)) return "";
+
+            var simplified = new List<Move>();
+            foreach (var move in MoveNotation.Parse(notation, 3))
+            {
+                int last = simplified.Count - 1;
+                if (last >= 0
+                    && simplified[last].Axis == move.Axis
+                    && simplified[last].Layer == move.Layer)
+                {
+                    int turns = (simplified[last].Turns + move.Turns) & 3;
+                    simplified.RemoveAt(last);
+                    if (turns != 0)
+                        simplified.Add(new Move(move.Axis, move.Layer, turns));
+                    continue;
+                }
+
+                simplified.Add(move);
+            }
+            return MoveNotation.Format(simplified, 3);
+        }
 
         static string RemoveWholeCubeY(string notation)
         {

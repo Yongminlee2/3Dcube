@@ -12,12 +12,14 @@ namespace Cube.App.Tests
         GameObject _go;
         CubeRenderer _renderer;
         Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
         {
             SkinService.Init();
             _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
             _go = new GameObject("Cube");
             _renderer = _go.AddComponent<CubeRenderer>();
             _renderer.Build(CubeState.Solved(3));
@@ -27,6 +29,7 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
             if (_go != null) Object.DestroyImmediate(_go);
         }
 
@@ -34,10 +37,41 @@ namespace Cube.App.Tests
             s.StickerTextures != null && System.Array.Exists(s.StickerTextures, t => t != null);
 
         [Test]
-        public void 여섯_종류의_스킨이_모두_있다()
+        public void 열_종류의_스킨이_모두_있다()
         {
-            // 색만 있는 5종(클래식/파스텔/비비드/톤다운/다크스틸) + 텍스처가 있는 우드.
-            Assert.AreEqual(6, SkinService.All.Length);
+            // 색만 있는 5종 + 우드 + 캐릭터 스킨 4종.
+            Assert.AreEqual(10, SkinService.All.Length);
+        }
+
+        [TestCase("Skin_Starlight")]
+        [TestCase("Skin_KawaiiPals")]
+        [TestCase("Skin_SummerHoliday")]
+        [TestCase("Skin_MoonlightResort")]
+        public void 그림_스킨은_여섯_면이_모두_서로_다른_그림이다(string skinName)
+        {
+            var illustrated = System.Array.Find(SkinService.All, s => s.name == skinName);
+            Assert.IsNotNull(illustrated);
+            Assert.AreEqual(6, illustrated.StickerTextures.Length);
+
+            for (int i = 0; i < illustrated.StickerTextures.Length; i++)
+            {
+                Assert.IsNotNull(illustrated.StickerTextures[i], $"{i}번 면 텍스처가 없다");
+                for (int j = 0; j < i; j++)
+                    Assert.AreNotEqual(illustrated.StickerTextures[j], illustrated.StickerTextures[i],
+                        $"{j}번과 {i}번 면이 같은 그림을 공유한다");
+            }
+        }
+
+        [Test]
+        public void 캐릭터_스킨은_목록_맨_아래에_모인다()
+        {
+            bool metCharacter = false;
+            foreach (var skin in SkinService.All)
+            {
+                if (skin.CharacterArtwork) metCharacter = true;
+                else Assert.IsFalse(metCharacter, $"일반 스킨 {skin.name}이 캐릭터 스킨 아래에 있다");
+            }
+            Assert.IsTrue(metCharacter);
         }
 
         [UnityTest]
@@ -96,6 +130,39 @@ namespace Cube.App.Tests
             var mat = _renderer.StickerAt((Face)faceIndex, 0, 0).sharedMaterial;
             TestColors.AssertSame(Color.white, mat.color, "텍스처가 있으면 틴트는 흰색이어야 한다 — 안 그러면 대표색으로 두 번 물든다");
             Assert.AreEqual(textured.StickerTextures[faceIndex], mat.mainTexture);
+        }
+
+        [UnityTest]
+        public IEnumerator 한_면_전체_모드는_그림을_NxN으로_나눈다()
+        {
+            var textured = System.Array.Find(SkinService.All, HasTexture);
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+            yield return null;
+
+            var left = _renderer.StickerAt(Face.U, 0, 0).sharedMaterial;
+            var right = _renderer.StickerAt(Face.U, 0, 1).sharedMaterial;
+            Assert.AreNotSame(left, right);
+            Assert.That(left.mainTextureScale.x, Is.EqualTo(1f / 3f).Within(0.001f));
+            Assert.That(left.mainTextureScale.y, Is.EqualTo(1f / 3f).Within(0.001f));
+            Assert.AreNotEqual(left.mainTextureOffset.x, right.mainTextureOffset.x);
+            Assert.AreEqual(left.mainTexture, right.mainTexture);
+        }
+
+        [UnityTest]
+        public IEnumerator 조각_반복_모드는_같은_면_재질을_공유한다()
+        {
+            var textured = System.Array.Find(SkinService.All, HasTexture);
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.RepeatPerSticker);
+            yield return null;
+
+            var left = _renderer.StickerAt(Face.U, 0, 0).sharedMaterial;
+            var right = _renderer.StickerAt(Face.U, 0, 1).sharedMaterial;
+            Assert.AreSame(left, right);
+            Assert.That(left.mainTextureScale, Is.EqualTo(Vector2.one));
         }
 
         [UnityTest]

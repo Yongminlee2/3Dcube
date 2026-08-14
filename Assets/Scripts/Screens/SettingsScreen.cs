@@ -29,7 +29,7 @@ namespace Cube.App
             Section("화면", 0.842f);
             _theme = Row("Row_테마", "테마", "다크와 라이트를 전환해요", "moon-stars", 0.760f,
                 () => ThemeService.Apply(!AppSettings.DarkTheme), out _themeValue);
-            _skin = Row("Row_스킨", "큐브 스킨", "큐브의 색과 질감을 골라요", "palette", 0.675f,
+            _skin = Row("Row_스킨", "큐브 스킨", "색상, 질감, 캐릭터를 골라요", "palette", 0.675f,
                 () => onSkins?.Invoke(), out _skinValue, chevron: true);
 
             Section("소리", 0.620f);
@@ -40,12 +40,13 @@ namespace Cube.App
                     AudioService.Refresh();
                     RefreshLabels();
                 }, out _bgmValue);
-            _effects = Row("Row_효과음", "효과음", "버튼과 큐브 회전 소리", "hand-click", 0.450f,
+            _effects = Row("Row_효과음", "큐브 효과음", "기본·말랑 팝·실제 소리를 골라요", "hand-click", 0.450f,
                 () =>
                 {
-                    AppSettings.SoundEffects = !AppSettings.SoundEffects;
+                    AppSettings.CubeSound = NextCubeSound(AppSettings.CubeSound);
                     AudioService.Refresh();
                     RefreshLabels();
+                    AudioService.PlayMove();
                 }, out _effectsValue);
 
             Section("연습", 0.395f);
@@ -134,10 +135,26 @@ namespace Cube.App
             SetValue(_themeValue, AppSettings.DarkTheme ? "다크" : "라이트", true);
             SetValue(_skinValue, SkinService.Current.DisplayName, true);
             SetValue(_bgmValue, AppSettings.BackgroundMusic ? "켬" : "끔", AppSettings.BackgroundMusic);
-            SetValue(_effectsValue, AppSettings.SoundEffects ? "켬" : "끔", AppSettings.SoundEffects);
+            string soundLabel = AppSettings.CubeSound == CubeSoundMode.Classic
+                ? "기본"
+                : AppSettings.CubeSound == CubeSoundMode.Cute
+                    ? "말랑 팝"
+                    : AppSettings.CubeSound == CubeSoundMode.Realistic ? "실제 큐브" : "끔";
+            SetValue(_effectsValue, soundLabel, AppSettings.CubeSound != CubeSoundMode.Off);
             SetValue(_inspectionValue, AppSettings.Inspection ? "켬" : "끔", AppSettings.Inspection);
             SetValue(_padValue, AppSettings.ShowPad ? "켬" : "끔", AppSettings.ShowPad);
             SetValue(_speedValue, AppSettings.AnimationMs == 0 ? "즉시" : $"{AppSettings.AnimationMs}ms", true);
+        }
+
+        static CubeSoundMode NextCubeSound(CubeSoundMode current)
+        {
+            switch (current)
+            {
+                case CubeSoundMode.Classic: return CubeSoundMode.Cute;
+                case CubeSoundMode.Cute: return CubeSoundMode.Realistic;
+                case CubeSoundMode.Realistic: return CubeSoundMode.Off;
+                default: return CubeSoundMode.Classic;
+            }
         }
 
         void SetValue(Text label, string text, bool active)

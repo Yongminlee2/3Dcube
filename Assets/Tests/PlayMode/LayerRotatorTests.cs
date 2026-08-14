@@ -13,11 +13,16 @@ namespace Cube.App.Tests
         GameObject _go;
         CubeRenderer _renderer;
         LayerRotator _rotator;
+        Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
         {
             ThemeService.Init();
+            SkinService.Init();
+            _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
             AppSettings.AnimationMs = 40;
             _go = new GameObject("Cube");
             _renderer = _go.AddComponent<CubeRenderer>();
@@ -30,6 +35,8 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             AppSettings.AnimationMs = 120;
+            SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
             if (_go != null) Object.DestroyImmediate(_go);
         }
 
@@ -129,6 +136,35 @@ namespace Cube.App.Tests
             _rotator.EnqueueRange(MoveNotation.Parse("R U R'", 3));
             yield return WaitIdle();
             Assert.AreEqual(3, count);
+        }
+
+        [UnityTest]
+        public IEnumerator 즉시_섞고_되돌려도_한면_그림_조각이_제자리로_돌아온다()
+        {
+            var textured = System.Array.Find(SkinService.All,
+                s => s.StickerTextures != null && System.Array.Exists(s.StickerTextures, t => t != null));
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+            yield return null;
+
+            var original = new Material[6 * 3 * 3];
+            for (int f = 0; f < 6; f++)
+                for (int row = 0; row < 3; row++)
+                    for (int col = 0; col < 3; col++)
+                        original[(f * 3 + row) * 3 + col]
+                            = _renderer.StickerAt((Face)f, row, col).sharedMaterial;
+
+            _rotator.ApplyInstant(MoveNotation.Parse("R U F", 3));
+            _rotator.ApplyInstant(MoveNotation.Parse("F' U' R'", 3));
+
+            Assert.IsTrue(_renderer.State.IsSolved());
+            for (int f = 0; f < 6; f++)
+                for (int row = 0; row < 3; row++)
+                    for (int col = 0; col < 3; col++)
+                        Assert.AreSame(original[(f * 3 + row) * 3 + col],
+                            _renderer.StickerAt((Face)f, row, col).sharedMaterial,
+                            $"face={f} {row},{col} 그림 조각이 바뀌었다");
         }
     }
 }

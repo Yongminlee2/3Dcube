@@ -19,6 +19,24 @@ namespace Cube.App
         Material _bodyMaterial;
         int _n;
 
+        readonly Dictionary<MeshRenderer, StickerArtworkPiece> _artworkPieces
+            = new Dictionary<MeshRenderer, StickerArtworkPiece>();
+        readonly List<Material> _artworkMaterials = new List<Material>();
+
+        readonly struct StickerArtworkPiece
+        {
+            public readonly int ColorIndex;
+            public readonly int Row;
+            public readonly int Col;
+
+            public StickerArtworkPiece(int colorIndex, int row, int col)
+            {
+                ColorIndex = colorIndex;
+                Row = row;
+                Col = col;
+            }
+        }
+
         public Vector3 GridToLocal(int x, int y, int z)
         {
             float c = (_n - 1) * 0.5f;
@@ -92,11 +110,13 @@ namespace Cube.App
 
         void BuildStickers()
         {
+            var nextPiece = new int[Faces.Count];
             for (int f = 0; f < Faces.Count; f++)
                 for (int row = 0; row < _n; row++)
                     for (int col = 0; col < _n; col++)
                     {
-                        var p = CubeCoords.ToPoint((Face)f, row, col, _n);
+                        var face = (Face)f;
+                        var p = CubeCoords.ToPoint(face, row, col, _n);
                         var parent = _grid[p.X, p.Y, p.Z];
 
                         // Quad가 아니라 납작한 정육면체를 쓴다.
@@ -114,10 +134,25 @@ namespace Cube.App
                         // 몸통 표면(0.5)에 얇게 얹는다. 두께의 절반만큼 밖으로 밀어
                         // z-파이팅을 피하되, 떠 보이지 않을 만큼만 띄운다.
                         sticker.transform.localPosition = dir * 0.508f;
-                        sticker.transform.localRotation = Quaternion.LookRotation(dir);
+                        // 옆면은 화면 위가 Unity +Y지만, U/D면은 법선과 +Y가 나란해
+                        // 기본 LookRotation의 위쪽 기준이 무너진다. CubeCoords 규칙대로
+                        // U는 B쪽(Unity +Z), D는 F쪽(Unity -Z)을 그림의 위로 고정한다.
+                        var artworkUp = face == Face.U ? Vector3.forward
+                                      : face == Face.D ? Vector3.back
+                                      : Vector3.up;
+                        sticker.transform.localRotation = Quaternion.LookRotation(dir, artworkUp);
                         sticker.transform.localScale = new Vector3(0.9f, 0.9f, 0.02f);
 
-                        _stickers[(f * _n + row) * _n + col] = sticker.GetComponent<MeshRenderer>();
+                        var stickerRenderer = sticker.GetComponent<MeshRenderer>();
+                        _stickers[(f * _n + row) * _n + col] = stickerRenderer;
+
+                        // 그림 조각의 정체성은 현재 위치가 아니라 실제 스티커 오브젝트에 붙인다.
+                        // 그래야 큐브를 돌린 뒤에도 그림의 같은 조각이 큐비와 함께 이동하고,
+                        // 다시 맞췄을 때 한 면짜리 일러스트가 정확히 복원된다.
+                        int colorIndex = State.Get((Face)f, row, col);
+                        int piece = nextPiece[colorIndex]++;
+                        _artworkPieces[stickerRenderer] = new StickerArtworkPiece(
+                            colorIndex, piece / _n, piece % _n);
                     }
         }
 
@@ -125,12 +160,25 @@ namespace Cube.App
         public void Refresh()
         {
             if (State == null) return;
+            // 외부에서 CubeState만 직접 바꾼 뒤 Refresh를 호출하는 기존 경로도 지원한다.
+            // 실제 회전은 CommitPermutation이 물리 스티커를 옮기므로 이 재구성이 필요 없다.
+            ReassignArtworkPiecesFromState();
+            RefreshStickerVisuals(SkinService.Current);
+        }
+
+        void ReassignArtworkPiecesFromState()
+        {
+            _artworkPieces.Clear();
+            var nextPiece = new int[Faces.Count];
             for (int f = 0; f < Faces.Count; f++)
                 for (int row = 0; row < _n; row++)
                     for (int col = 0; col < _n; col++)
                     {
-                        byte color = State.Get((Face)f, row, col);
-                        _stickers[(f * _n + row) * _n + col].sharedMaterial = _stickerMaterials[color];
+                        var sticker = _stickers[(f * _n + row) * _n + col];
+                        int colorIndex = State.Get((Face)f, row, col);
+                        int piece = nextPiece[colorIndex]++;
+                        _artworkPieces[sticker] = new StickerArtworkPiece(
+                            colorIndex, piece / _n, piece % _n);
                     }
         }
 
@@ -201,6 +249,61 @@ namespace Cube.App
             _bodyMaterial.color = skin.CubeBody;
             for (int i = 0; i < 6; i++)
                 ApplyStickerVisual(_stickerMaterials[i], skin, i);
+            RefreshStickerVisuals(skin);
+        }
+
+        void RefreshStickerVisuals(Skin skin)
+        {
+            if (skin == null || _stickerMaterials == null) return;
+            ClearArtworkMaterials();
+
+            bool wholeFace = SkinService.ArtworkLayout == SkinArtworkLayout.WholeFace;
+            foreach (var pair in _artworkPieces)
+            {
+                var sticker = pair.Key;
+                var piece = pair.Value;
+                if (sticker == null || piece.ColorIndex < 0 || piece.ColorIndex >= 6) continue;
+
+                var texture = skin.StickerTextures != null
+                    && piece.ColorIndex < skin.StickerTextures.Length
+                    ? skin.StickerTextures[piece.ColorIndex]
+                    : null;
+
+                if (!wholeFace || texture == null)
+                {
+                    sticker.sharedMaterial = _stickerMaterials[piece.ColorIndex];
+                    continue;
+                }
+
+                var material = new Material(_stickerMaterials[piece.ColorIndex]);
+                var scale = new Vector2(1f / _n, 1f / _n);
+                var offset = new Vector2(piece.Col / (float)_n, 1f - (piece.Row + 1f) / _n);
+                SetTextureTransform(material, scale, offset);
+                sticker.sharedMaterial = material;
+                _artworkMaterials.Add(material);
+            }
+        }
+
+        static void SetTextureTransform(Material material, Vector2 scale, Vector2 offset)
+        {
+            // URP/Lit은 _BaseMap, 일부 테스트/구형 셰이더는 _MainTex를 쓴다.
+            if (material.HasProperty("_BaseMap"))
+            {
+                material.SetTextureScale("_BaseMap", scale);
+                material.SetTextureOffset("_BaseMap", offset);
+            }
+            if (material.HasProperty("_MainTex"))
+            {
+                material.SetTextureScale("_MainTex", scale);
+                material.SetTextureOffset("_MainTex", offset);
+            }
+        }
+
+        void ClearArtworkMaterials()
+        {
+            for (int i = 0; i < _artworkMaterials.Count; i++)
+                DestroyNow(_artworkMaterials[i]);
+            _artworkMaterials.Clear();
         }
 
         /// 텍스처가 있는 면은 텍스처를 입히고 색은 흰색으로 둔다 — 틴트를 곱하면
@@ -224,6 +327,7 @@ namespace Cube.App
 
         public void Clear()
         {
+            ClearArtworkMaterials();
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var child = transform.GetChild(i).gameObject;
@@ -233,6 +337,7 @@ namespace Cube.App
                 DestroyNow(child);
             }
             _cubies.Clear();
+            _artworkPieces.Clear();
             State = null;
         }
 

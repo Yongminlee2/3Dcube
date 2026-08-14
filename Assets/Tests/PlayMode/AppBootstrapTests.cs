@@ -13,6 +13,7 @@ namespace Cube.App.Tests
         [SetUp]
         public void SetUp()
         {
+            CubeProgressStore.ClearAll();
             // 부트스트랩이 진짜 기록 파일을 건드리지 않게 한다.
             AppBootstrap.StorePathOverride =
                 System.IO.Path.Combine(Application.temporaryCachePath, "boot-test.json");
@@ -24,6 +25,7 @@ namespace Cube.App.Tests
         {
             AppBootstrap.StorePathOverride = null;
             if (_go != null) Object.DestroyImmediate(_go);
+            CubeProgressStore.ClearAll();
         }
 
         [UnityTest]
@@ -36,6 +38,10 @@ namespace Cube.App.Tests
             Assert.IsNotNull(boot.UiCanvas, "캔버스가 없다");
             Assert.IsNotNull(boot.CubeRoot, "큐브 뿌리가 없다");
             Assert.AreSame(boot, AppBootstrap.Instance);
+            Assert.GreaterOrEqual(AudioService.RealisticMoveClipCount, 3,
+                "CC0 실제 큐브 회전음이 Resources에서 로드되지 않았다");
+            Assert.GreaterOrEqual(AudioService.CuteMoveClipCount, 3,
+                "말랑 팝 회전음이 생성되지 않았다");
         }
 
         [UnityTest]
@@ -70,11 +76,20 @@ namespace Cube.App.Tests
             AppSettings.AnimationMs = 60;
             AppSettings.Inspection = true;
             AppSettings.BackgroundMusic = false;
-            AppSettings.SoundEffects = false;
+            AppSettings.CubeSound = CubeSoundMode.Realistic;
             Assert.AreEqual(4, AppSettings.CubeSize);
             Assert.AreEqual(60, AppSettings.AnimationMs);
             Assert.IsTrue(AppSettings.Inspection);
             Assert.IsFalse(AppSettings.BackgroundMusic);
+            Assert.AreEqual(CubeSoundMode.Realistic, AppSettings.CubeSound);
+            Assert.IsTrue(AppSettings.SoundEffects);
+
+            AppSettings.CubeSound = CubeSoundMode.Cute;
+            Assert.AreEqual(CubeSoundMode.Cute, AppSettings.CubeSound);
+            Assert.IsTrue(AppSettings.SoundEffects);
+
+            AppSettings.SoundEffects = false;
+            Assert.AreEqual(CubeSoundMode.Off, AppSettings.CubeSound);
             Assert.IsFalse(AppSettings.SoundEffects);
 
             AppSettings.CubeSize = 3;
@@ -82,6 +97,7 @@ namespace Cube.App.Tests
             AppSettings.Inspection = false;
             AppSettings.BackgroundMusic = true;
             AppSettings.SoundEffects = true;
+            Assert.AreEqual(CubeSoundMode.Classic, AppSettings.CubeSound);
         }
     }
 }

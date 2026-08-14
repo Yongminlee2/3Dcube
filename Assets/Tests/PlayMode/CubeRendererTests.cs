@@ -89,5 +89,23 @@ namespace Cube.App.Tests
             Assert.AreEqual(new Vector3(1f, 1f, -1f), _renderer.GridToLocal(2, 2, 2));
             Assert.AreEqual(Vector3.zero, _renderer.GridToLocal(1, 1, 1));
         }
+
+        [UnityTest]
+        public IEnumerator 위아래_면은_그림의_위쪽_방향을_따로_고정한다()
+        {
+            _renderer.Build(CubeState.Solved(3));
+            yield return null;
+
+            Vector3 upOnU = _renderer.StickerAt(Face.U, 1, 1).transform.localRotation * Vector3.up;
+            Vector3 upOnD = _renderer.StickerAt(Face.D, 1, 1).transform.localRotation * Vector3.up;
+            Vector3 upOnF = _renderer.StickerAt(Face.F, 1, 1).transform.localRotation * Vector3.up;
+
+            Assert.Less(Vector3.Distance(Vector3.forward, upOnU), 0.001f,
+                "U면 그림 위쪽은 B 방향(Unity +Z)이어야 한다");
+            Assert.Less(Vector3.Distance(Vector3.back, upOnD), 0.001f,
+                "D면 그림 위쪽은 F 방향(Unity -Z)이어야 한다");
+            Assert.Less(Vector3.Distance(Vector3.up, upOnF), 0.001f,
+                "옆면 그림 위쪽은 Unity +Y를 유지해야 한다");
+        }
     }
 }

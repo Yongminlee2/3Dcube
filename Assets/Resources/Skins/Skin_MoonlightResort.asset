@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafc57a426d92374395443a5eaa0c179, type: 3}
+  m_Name: Skin_MoonlightResort
+  m_EditorClassIdentifier: Cube.Unity::Cube.App.Skin
+  DisplayName: "\uBB38\uB77C\uC774\uD2B8 \uB9AC\uC870\uD2B8"
+  CubeBody: {r: 0.03137255, g: 0.043137256, b: 0.09411765, a: 1}
+  CharacterArtwork: 1
+  StickerColors:
+  - {r: 0.47058824, g: 0.23921569, b: 0.65882355, a: 1}
+  - {r: 0.21176471, g: 0.7490196, b: 0.8156863, a: 1}
+  - {r: 0.9098039, g: 0.3647059, b: 0.39607844, a: 1}
+  - {r: 0.19215687, g: 0.3647059, b: 0.76862746, a: 1}
+  - {r: 0.8980392, g: 0.54901963, b: 0.15686275, a: 1}
+  - {r: 0.15686275, g: 0.5882353, b: 0.39607844, a: 1}
+  StickerTextures:
+  - {fileID: 2800000, guid: b17340f48b3de5248a32aac9d5c7d987, type: 3}
+  - {fileID: 2800000, guid: cffa28401c1a0004e84a8a39e63ff7a7, type: 3}
+  - {fileID: 2800000, guid: 395776d4aa396f24d9a4127aae392a55, type: 3}
+  - {fileID: 2800000, guid: 775dc27a7631321449a17a463ad52282, type: 3}
+  - {fileID: 2800000, guid: 243f425f1cc6fad4da776a2f2d5e542a, type: 3}
+  - {fileID: 2800000, guid: 42c055153c7b98744b2782d0928a34eb, type: 3}

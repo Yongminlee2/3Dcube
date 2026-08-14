@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafc57a426d92374395443a5eaa0c179, type: 3}
+  m_Name: Skin_Starlight
+  m_EditorClassIdentifier: Cube.Unity::Cube.App.Skin
+  DisplayName: "\uBCC4\uBE5B \uBAA8\uD5D8\uB2E8"
+  CubeBody: {r: 0.03529412, g: 0.02745098, b: 0.07058824, a: 1}
+  CharacterArtwork: 1
+  StickerColors:
+  - {r: 0.29803923, g: 0.11372549, b: 0.58431375, a: 1}
+  - {r: 0.03137255, g: 0.5686275, b: 0.69803923, a: 1}
+  - {r: 0.9843137, g: 0.44313726, b: 0.52156866, a: 1}
+  - {r: 0.11764706, g: 0.22745098, b: 0.5411765, a: 1}
+  - {r: 0.9764706, g: 0.4509804, b: 0.08627451, a: 1}
+  - {r: 0.0627451, g: 0.7254902, b: 0.5058824, a: 1}
+  StickerTextures:
+  - {fileID: 2800000, guid: 12216ee1ec38a8c4a8d44f25cc7002c5, type: 3}
+  - {fileID: 2800000, guid: 545430470b9b19f45868b6080c6e614c, type: 3}
+  - {fileID: 2800000, guid: ae1c635bf33e28c48807d468a66f3d92, type: 3}
+  - {fileID: 2800000, guid: 352c56473b2dc6d418233bcb3ae2c2cb, type: 3}
+  - {fileID: 2800000, guid: 25bb5bf506b0b1d49b72ae7237ebfede, type: 3}
+  - {fileID: 2800000, guid: bd79ff044a4d1c44cb9043868fea1ed6, type: 3}
