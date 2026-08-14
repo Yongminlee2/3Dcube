@@ -51,6 +51,30 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
+        public IEnumerator 홈에서_크기를_골라도_컬러_큐브_아이콘이_유지된다()
+        {
+            yield return null;
+            var sizes = AppBootstrap.Instance.UiCanvas.transform
+                .Find("SafeAreaRoot/HomeScreen/Sizes");
+            Assert.IsNotNull(sizes);
+
+            for (int size = 2; size <= 4; size++)
+            {
+                var button = sizes.Find($"Size{size}")?.GetComponent<Button>();
+                Assert.IsNotNull(button, $"{size}×{size} 선택 버튼이 없다");
+                button.onClick.Invoke();
+                yield return null;
+
+                var colorIcon = button.transform.Find("SizeIcon");
+                Assert.IsNotNull(colorIcon, $"{size}×{size} 컬러 아이콘이 없다");
+                Assert.IsTrue(colorIcon.gameObject.activeSelf,
+                    $"{size}×{size}을 선택해도 컬러 아이콘이 사라지면 안 된다");
+                Assert.IsNull(button.transform.Find("SelectedSizeIcon"),
+                    "선택 시 큐브를 흰색 그림으로 교체하면 안 된다");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator 설정에서_기본음_실제큐브음_끄기를_고를_수_있다()
         {
             _router.Go(ScreenId.Settings);

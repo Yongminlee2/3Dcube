@@ -11,7 +11,6 @@ namespace Cube.App
         Button[] _sizeButtons;
         Image[] _sizeGradient;
         Image[] _sizeIcons;
-        Image[] _sizeSelectedIcons;
         Palette _p;
         Text _notice;
         Text _learnProgress;
@@ -136,7 +135,6 @@ namespace Cube.App
             _sizeButtons = new Button[3];
             _sizeGradient = new Image[3];
             _sizeIcons = new Image[3];
-            _sizeSelectedIcons = new Image[3];
             for (int i = 0; i < 3; i++)
             {
                 int size = i + 2;
@@ -163,14 +161,6 @@ namespace Cube.App
                 _sizeIcons[i] = UiKit.Artwork(btn.transform, "SizeIcon", $"UiArt/Size{size}Cube");
                 UiKit.Stretch((RectTransform)_sizeIcons[i].transform,
                     new Vector2(0.11f, 0.16f), new Vector2(0.46f, 0.84f), Vector4.zero);
-
-                if (size == 3)
-                {
-                    _sizeSelectedIcons[i] = UiKit.Artwork(btn.transform, "SelectedSizeIcon",
-                        "UiArt/Size3CubeSelected");
-                    UiKit.Stretch((RectTransform)_sizeSelectedIcons[i].transform,
-                        new Vector2(0.11f, 0.16f), new Vector2(0.46f, 0.84f), Vector4.zero);
-                }
                 _sizeButtons[i] = btn;
             }
         }
@@ -288,11 +278,11 @@ namespace Cube.App
                 if (_sizeGradient != null && i < _sizeGradient.Length && _sizeGradient[i] != null)
                     _sizeGradient[i].gameObject.SetActive(i + 2 == _size);
 
-                bool useSelectedArtwork = i == 1 && i + 2 == _size;
+                // 선택 상태는 파란 배경과 테두리만으로 표현한다. 예전에는 3×3을
+                // 고르면 별도의 흰색 큐브 그림으로 교체해, 실제 큐브 색이 사라진
+                // 것처럼 보였다. 크기를 골라도 각 컬러 아이콘은 그대로 유지한다.
                 if (_sizeIcons != null && _sizeIcons[i] != null)
-                    _sizeIcons[i].gameObject.SetActive(!useSelectedArtwork);
-                if (_sizeSelectedIcons != null && _sizeSelectedIcons[i] != null)
-                    _sizeSelectedIcons[i].gameObject.SetActive(useSelectedArtwork);
+                    _sizeIcons[i].gameObject.SetActive(true);
             }
         }
     }
