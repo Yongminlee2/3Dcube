@@ -12,6 +12,8 @@ namespace Cube.App
         const string KeySize = "cube.size";
         const string KeyShowNet = "cube.showNet";
         const string KeySkin = "cube.skin";
+        const string KeyBackgroundMusic = "cube.backgroundMusic";
+        const string KeySoundEffects = "cube.soundEffects";
 
         public static bool DarkTheme
         {
@@ -56,6 +58,18 @@ namespace Cube.App
         {
             get => PlayerPrefs.GetString(KeySkin, "");
             set { PlayerPrefs.SetString(KeySkin, value); PlayerPrefs.Save(); }
+        }
+
+        public static bool BackgroundMusic
+        {
+            get => PlayerPrefs.GetInt(KeyBackgroundMusic, 1) != 0;
+            set { PlayerPrefs.SetInt(KeyBackgroundMusic, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        public static bool SoundEffects
+        {
+            get => PlayerPrefs.GetInt(KeySoundEffects, 1) != 0;
+            set { PlayerPrefs.SetInt(KeySoundEffects, value ? 1 : 0); PlayerPrefs.Save(); }
         }
     }
 }

@@ -22,11 +22,20 @@ namespace Cube.App
 
         Text _title, _body, _pageLabel, _status;
         Button _prev, _next, _practice, _hint, _rewind;
+        public NotationPad Pad { get; private set; }
+        GameObject _padRoot;
         Transform _algRoot;
         RectTransform _statusCard;
         Image _statusInfoIcon, _statusSuccessIcon;
         Lesson _lesson;
         int _page;
+
+        // 연습 화면과 동떨어져 보이지 않게 충분히 내리되, 설명 카드를 침범하지
+        // 않도록 읽기 화면에서는 크기를 한 단계 줄여 카드 바로 위에 맞춘다.
+        const float ReadingCubeScale = 0.68f;
+        const float ReadingCubeLift = 0.125f;
+        const float PracticeCubeScale = 0.95f;
+        const float PracticeCubeLift = 0.04f;
 
         // 설명 읽기 전용 요소(코치 카드·페이지 넘김·공식 목록)를 한데 묶는다.
         // 연습하기를 누르면 이 묶음을 통째로 숨기고 큐브를 크게, 가운데로 —
@@ -58,6 +67,7 @@ namespace Cube.App
             BuildPager();
             BuildAlgorithmArea();
             BuildStatusCard();
+            BuildNotationPad();
             BuildActions();
         }
 
@@ -77,7 +87,7 @@ namespace Cube.App
         {
             var card = UiKit.Card(_explainGroup.transform, "CoachCard", _p, raised: true);
             UiKit.Stretch(card,
-                new Vector2(0.055f, 0.435f), new Vector2(0.945f, 0.575f), Vector4.zero);
+                new Vector2(0.055f, 0.385f), new Vector2(0.945f, 0.525f), Vector4.zero);
             UiKit.AddSoftOutline(card.GetComponent<Image>(), _p.Border, 1f);
 
             var plate = UiKit.IconPlate(card, "CoachIcon", "book-2", _p, _p.Accent);
@@ -102,7 +112,7 @@ namespace Cube.App
             _prev = UiKit.Button(_explainGroup.transform, "Prev", "이전", _p,
                 () => TurnPage(-1), ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_prev.transform,
-                new Vector2(0.055f, 0.36f), new Vector2(0.305f, 0.425f), Vector4.zero);
+                new Vector2(0.055f, 0.31f), new Vector2(0.305f, 0.375f), Vector4.zero);
             StylePagerButton(_prev, "arrow-left", iconOnRight: false);
 
             var pagePill = UiKit.Panel(_explainGroup.transform, "PagePill", _p.SurfaceMuted);
@@ -110,7 +120,7 @@ namespace Cube.App
             pageImage.sprite = UiKit.RoundedPill;
             pageImage.type = Image.Type.Sliced;
             UiKit.Stretch(pagePill,
-                new Vector2(0.365f, 0.365f), new Vector2(0.635f, 0.42f), Vector4.zero);
+                new Vector2(0.365f, 0.315f), new Vector2(0.635f, 0.37f), Vector4.zero);
 
             _pageLabel = UiKit.Label(pagePill, "Page", "", 22, _p.TextSecondary);
             _pageLabel.fontStyle = FontStyle.Bold;
@@ -120,7 +130,7 @@ namespace Cube.App
             _next = UiKit.Button(_explainGroup.transform, "Next", "다음", _p,
                 () => TurnPage(1), ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_next.transform,
-                new Vector2(0.695f, 0.36f), new Vector2(0.945f, 0.425f), Vector4.zero);
+                new Vector2(0.695f, 0.31f), new Vector2(0.945f, 0.375f), Vector4.zero);
             StylePagerButton(_next, "chevron-right", iconOnRight: true);
         }
 
@@ -148,12 +158,12 @@ namespace Cube.App
                 UiMetrics.SectionTitle, _p.TextPrimary, TextAnchor.MiddleLeft);
             heading.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)heading.transform,
-                new Vector2(0.055f, 0.322f), new Vector2(0.945f, 0.357f), Vector4.zero);
+                new Vector2(0.055f, 0.272f), new Vector2(0.945f, 0.307f), Vector4.zero);
 
             var scroll = UiKit.ScrollList(_explainGroup.transform, "Algorithms", _p,
                 out var content, spacing: 8f, padding: 2f);
             UiKit.Stretch((RectTransform)scroll.transform,
-                new Vector2(0.055f, 0.205f), new Vector2(0.945f, 0.322f), Vector4.zero);
+                new Vector2(0.055f, 0.165f), new Vector2(0.945f, 0.272f), Vector4.zero);
             _algRoot = content;
         }
 
@@ -161,7 +171,7 @@ namespace Cube.App
         {
             _statusCard = UiKit.Card(transform, "StatusCard", _p);
             UiKit.Stretch(_statusCard,
-                new Vector2(0.055f, 0.14f), new Vector2(0.945f, 0.195f), Vector4.zero);
+                new Vector2(0.055f, 0.105f), new Vector2(0.945f, 0.155f), Vector4.zero);
             UiKit.AddSoftOutline(_statusCard.GetComponent<Image>(), _p.Border, 0.8f);
 
             _statusInfoIcon = UiKit.Icon(_statusCard, "InfoIcon", "sparkles", _p.Accent);
@@ -186,20 +196,37 @@ namespace Cube.App
             _practice = UiKit.Button(transform, "Practice", "연습하기", _p,
                 Practice, ButtonVariant.Primary);
             UiKit.Stretch((RectTransform)_practice.transform,
-                new Vector2(0.055f, 0.035f), new Vector2(0.425f, 0.12f), Vector4.zero);
+                new Vector2(0.055f, 0.015f), new Vector2(0.425f, 0.095f), Vector4.zero);
             StyleActionButton(_practice, "player-play", _p.TextOnAccent, 0.28f);
 
             _hint = UiKit.Button(transform, "Hint", "힌트", _p,
                 ShowHint, ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_hint.transform,
-                new Vector2(0.445f, 0.035f), new Vector2(0.69f, 0.12f), Vector4.zero);
+                new Vector2(0.445f, 0.015f), new Vector2(0.69f, 0.095f), Vector4.zero);
             StyleActionButton(_hint, "sparkles", _p.Accent, 0.32f);
 
             _rewind = UiKit.Button(transform, "Rewind", "처음으로", _p,
                 ResetCube, ButtonVariant.Secondary);
             UiKit.Stretch((RectTransform)_rewind.transform,
-                new Vector2(0.71f, 0.035f), new Vector2(0.945f, 0.12f), Vector4.zero);
+                new Vector2(0.71f, 0.015f), new Vector2(0.945f, 0.095f), Vector4.zero);
             StyleActionButton(_rewind, "arrow-left", _p.TextSecondary, 0.32f);
+        }
+
+        void BuildNotationPad()
+        {
+            var padRoot = UiKit.Panel(transform, "LessonPad", new Color(0f, 0f, 0f, 0f));
+            UiKit.Stretch(padRoot,
+                new Vector2(0.055f, 0.17f), new Vector2(0.945f, 0.23f), Vector4.zero);
+            _padRoot = padRoot.gameObject;
+            Pad = padRoot.gameObject.AddComponent<NotationPad>();
+            Pad.Build(padRoot, 3, _p, ApplyLessonMove);
+            _padRoot.SetActive(false);
+        }
+
+        void ApplyLessonMove(Move move)
+        {
+            if (!InPractice || _rotator == null) return;
+            _rotator.Enqueue(move);
         }
 
         void StyleActionButton(Button button, string iconName, Color iconColor, float labelStart)
@@ -275,10 +302,11 @@ namespace Cube.App
         void RefreshPracticeLayout()
         {
             if (_explainGroup != null) _explainGroup.SetActive(!InPractice);
+            if (_padRoot != null) _padRoot.SetActive(InPractice && AppSettings.ShowPad);
             if (AppBootstrap.Instance == null) return;
             AppBootstrap.Instance.SetCubePresentation(
-                InPractice ? 0.95f : 0.72f,
-                InPractice ? 0.04f : 0.25f);
+                InPractice ? PracticeCubeScale : ReadingCubeScale,
+                InPractice ? PracticeCubeLift : ReadingCubeLift);
         }
 
         void BuildAlgorithmCards()

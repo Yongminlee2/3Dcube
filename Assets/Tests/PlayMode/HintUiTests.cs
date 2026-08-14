@@ -3,6 +3,7 @@ using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Cube.Core;
 using Cube.App;
 
@@ -102,6 +103,43 @@ namespace Cube.App.Tests
             yield return null;
 
             Assert.IsTrue(before.SameAs(practice.Renderer.State), "4x4에서 힌트가 큐브를 움직였다");
+        }
+
+        [UnityTest]
+        public IEnumerator 연습_카드와_하단버튼은_같은_규격과_읽기좋은_글자를_쓴다()
+        {
+            yield return null;
+
+            var root = _router.Practice.transform;
+            var net = root.Find("NetCard") as RectTransform;
+            var hint = root.Find("Hint") as RectTransform;
+            var bar = root.Find("Bar") as RectTransform;
+            Assert.NotNull(net);
+            Assert.NotNull(hint);
+            Assert.NotNull(bar);
+            Assert.AreEqual(0.05f, net.anchorMin.x, 0.001f);
+            Assert.AreEqual(0.95f, net.anchorMax.x, 0.001f);
+            Assert.AreEqual(net.anchorMin.x, hint.anchorMin.x, 0.001f);
+            Assert.AreEqual(net.anchorMax.x, hint.anchorMax.x, 0.001f);
+            Assert.AreEqual(net.anchorMin.x, bar.anchorMin.x, 0.001f);
+            Assert.AreEqual(net.anchorMax.x, bar.anchorMax.x, 0.001f);
+            Assert.LessOrEqual(bar.anchorMax.y - bar.anchorMin.y, 0.06f,
+                "하단 버튼 바가 글자보다 지나치게 크다");
+
+            var pad = root.Find("Pad") as RectTransform;
+            Assert.NotNull(pad);
+            Assert.LessOrEqual(pad.anchorMax.y - pad.anchorMin.y, 0.075f,
+                "3x3 노테이션 패드가 한 줄보다 크게 자리를 차지한다");
+            Assert.IsNull(root.Find("Pad/Pad_Double"), "2회 토글은 제거되어야 한다");
+            Assert.IsNull(root.Find("Pad/Pad_Wide"), "넓은 수 토글은 제거되어야 한다");
+            Assert.NotNull(root.Find("Pad/Pad_Prime"), "반시계 입력은 남아 있어야 한다");
+
+            var label = root.Find("Bar/Bar_섞기/Label")?.GetComponent<Text>();
+            var explanation = root.Find("Hint/HintExplanation")?.GetComponent<Text>();
+            Assert.NotNull(label);
+            Assert.NotNull(explanation);
+            Assert.GreaterOrEqual(label.fontSize, 24);
+            Assert.GreaterOrEqual(explanation.resizeTextMaxSize, 23);
         }
     }
 }

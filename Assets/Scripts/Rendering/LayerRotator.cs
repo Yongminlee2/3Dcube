@@ -78,6 +78,7 @@ namespace Cube.App
             _renderer.State.Apply(m);
             _renderer.CommitPermutation(m);
             MoveApplied?.Invoke(m);
+            AudioService.PlayMove();
 
             if (AppSettings.AnimationMs <= 0 || !isActiveAndEnabled)
             {

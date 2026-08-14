@@ -12,12 +12,10 @@ namespace Cube.App
 
         int _n;
         Action<Move> _onMove;
-        Button _primeButton, _doubleButton, _wideButton;
+        Button _primeButton;
         Palette _palette;
 
         public bool Prime { get; set; }
-        public bool Double { get; set; }
-        public bool Wide { get; set; }
 
         /// **자기 자신의 RectTransform 안에** 버튼을 깐다.
         /// 부모로 옮기거나 자기 앵커를 건드리지 않는다 — 이 컴포넌트는 대개
@@ -31,26 +29,25 @@ namespace Cube.App
             if (root == null) root = gameObject.AddComponent<RectTransform>();
             if (area != null && area != root) { transform.SetParent(area, false); UiKit.Stretch(root, Vector2.zero, Vector2.one, Vector4.zero); }
 
-            int columns = Letters.Length;
+            // 여섯 면과 반시계 토글을 한 줄에 둔다. 3×3에서 `2회`, `넓은 수`는
+            // 자주 쓰이지 않으면서 버튼만 두 줄로 키웠다. 같은 면을 두 번 누르면
+            // 2회전이 되므로 별도 토글 없이도 모든 기본 조작이 가능하다.
+            int columns = 8;
             int faceRows = n >= 4 ? 2 : 1;     // 4칸 큐브는 안쪽 층 버튼이 한 줄 더 붙는다
-            int rows = faceRows + 1;           // 마지막 줄은 반시계·2회·넓은 수 토글
+            int rows = faceRows;
 
             for (int r = 0; r < faceRows; r++)
-                for (int c = 0; c < columns; c++)
+                for (int c = 0; c < Letters.Length; c++)
                 {
                     string label = r == 0 ? Letters[c] : "2" + Letters[c];
-                    var btn = UiKit.Button(transform, $"Pad_{label}", label, p, null, ButtonVariant.Segment);
                     string captured = label;
-                    btn.onClick.AddListener(() => Fire(captured));
+                    var btn = UiKit.Button(transform, $"Pad_{label}", label, p,
+                        () => Fire(captured), ButtonVariant.Segment);
                     PlaceCell((RectTransform)btn.transform, c, c + 1, columns, r, rows);
                 }
 
             _primeButton = UiKit.Button(transform, "Pad_Prime", "반시계", p, TogglePrime, ButtonVariant.Segment);
-            _doubleButton = UiKit.Button(transform, "Pad_Double", "2회", p, ToggleDouble, ButtonVariant.Segment);
-            _wideButton = UiKit.Button(transform, "Pad_Wide", "넓은 수", p, ToggleWide, ButtonVariant.Segment);
-            PlaceCell((RectTransform)_primeButton.transform, 0, 2, columns, faceRows, rows);
-            PlaceCell((RectTransform)_doubleButton.transform, 2, 4, columns, faceRows, rows);
-            PlaceCell((RectTransform)_wideButton.transform, 4, 6, columns, faceRows, rows);
+            PlaceCell((RectTransform)_primeButton.transform, 6, 8, columns, 0, rows);
             RefreshToggleColors();
         }
 
@@ -65,30 +62,14 @@ namespace Cube.App
         void TogglePrime()
         {
             Prime = !Prime;
-            if (Prime) Double = false;
             RefreshToggleColors();
         }
-
-        void ToggleDouble()
-        {
-            Double = !Double;
-            if (Double) Prime = false;
-            RefreshToggleColors();
-        }
-
-        void ToggleWide() { Wide = !Wide; RefreshToggleColors(); }
 
         void RefreshToggleColors()
         {
             if (_primeButton != null)
                 UiKit.StyleButton(_primeButton, _palette,
                     Prime ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
-            if (_doubleButton != null)
-                UiKit.StyleButton(_doubleButton, _palette,
-                    Double ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
-            if (_wideButton != null)
-                UiKit.StyleButton(_wideButton, _palette,
-                    Wide ? ButtonVariant.SegmentSelected : ButtonVariant.Segment);
         }
 
         /// 테스트와 화면 양쪽에서 쓰는 입구. 버튼 하나를 누른 것과 같다.
@@ -100,16 +81,13 @@ namespace Cube.App
         void Fire(string label)
         {
             string token = label;
-            if (Wide && !label.StartsWith("2")) token += "w";
             if (Prime) token += "'";
-            else if (Double) token += "2";
 
             foreach (var m in MoveNotation.ParseToken(token, _n)) _onMove?.Invoke(m);
 
-            if (Prime || Double)
+            if (Prime)
             {
                 Prime = false;
-                Double = false;
                 RefreshToggleColors();
             }
         }

@@ -19,6 +19,7 @@ namespace Cube.App.Tests
         {
             AppSettings.AnimationMs = 0;
             AppSettings.CubeSize = 3;
+            AppSettings.ShowPad = true;
             LearnProgress.Reset();
 
             _path = Path.Combine(Application.temporaryCachePath, "learn-test.json");
@@ -78,6 +79,23 @@ namespace Cube.App.Tests
             Assert.AreEqual(ScreenId.Lesson, _router.Current);
             Assert.AreEqual(1, _router.Lesson.Stage);
             Assert.IsTrue(AppBootstrap.Instance.CubeRoot.gameObject.activeSelf, "단계 화면에서는 큐브를 보여준다");
+
+            float cubeCenter = AppBootstrap.Instance.CubeCamera
+                .WorldToViewportPoint(AppBootstrap.Instance.CubeRoot.position).y;
+            Assert.That(cubeCenter, Is.InRange(0.60f, 0.66f),
+                "설명 중 큐브는 연습 위치에 가깝되 코치 카드 위에 있어야 한다");
+
+            Assert.LessOrEqual(AppBootstrap.Instance.CubeRoot.localScale.x, 0.70f,
+                "설명 화면 큐브가 커져 코치 카드를 침범하면 안 된다");
+
+            var coach = _router.Lesson.transform.Find("ExplainGroup/CoachCard") as RectTransform;
+            var pager = _router.Lesson.transform.Find("ExplainGroup/PagePill") as RectTransform;
+            Assert.IsNotNull(coach);
+            Assert.IsNotNull(pager);
+            Assert.LessOrEqual(coach.anchorMax.y, 0.53f,
+                "코치 설명 카드는 큐브 아래쪽으로 내려와야 한다");
+            Assert.LessOrEqual(pager.anchorMax.y, 0.38f,
+                "페이지 버튼 묶음도 코치 설명과 함께 내려와야 한다");
         }
 
         [UnityTest]
@@ -148,6 +166,24 @@ namespace Cube.App.Tests
 
             Assert.IsTrue(before.SameAs(CubeStateNow()),
                 "단계 힌트는 설명만 하고 시연을 시작하면 안 된다");
+        }
+
+        [UnityTest]
+        public IEnumerator LessonPracticeShowsNotationPadAndMovesCube()
+        {
+            _router.OpenLesson(1);
+            yield return null;
+            Assert.IsNotNull(_router.Lesson.Pad);
+            Assert.IsFalse(_router.Lesson.Pad.gameObject.activeSelf);
+
+            _router.Lesson.Practice();
+            yield return null;
+            Assert.IsTrue(_router.Lesson.Pad.gameObject.activeSelf);
+
+            CubeState before = CubeStateNow().Clone();
+            _router.Lesson.Pad.Press("R");
+            yield return null;
+            Assert.IsFalse(before.SameAs(CubeStateNow()));
         }
 
         static CubeState CubeStateNow()

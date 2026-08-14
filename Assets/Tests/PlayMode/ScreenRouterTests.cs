@@ -47,6 +47,31 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
+        public IEnumerator 홈에서_큐브스킨을_바로_열고_홈으로_돌아온다()
+        {
+            yield return null;
+            var home = AppBootstrap.Instance.UiCanvas.transform.Find("SafeAreaRoot/HomeScreen");
+            var skinButton = home?.Find("Menu_스킨")?.GetComponent<Button>();
+            Assert.IsNotNull(skinButton, "홈에서 스킨 메뉴를 찾을 수 없다");
+
+            skinButton.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(ScreenId.Skins, _router.Current);
+
+            Vector3 previewCenter = AppBootstrap.Instance.CubeCamera
+                .WorldToViewportPoint(AppBootstrap.Instance.CubeRoot.position);
+            Assert.That(previewCenter.x, Is.EqualTo(0.5f).Within(0.01f));
+            Assert.That(previewCenter.y, Is.InRange(0.66f, 0.68f),
+                "스킨 미리보기 큐브는 카드 정중앙에 있어야 한다");
+
+            var back = _router.Skins.transform.Find("Back_큐브 스킨")?.GetComponent<Button>();
+            Assert.IsNotNull(back);
+            back.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(ScreenId.Home, _router.Current);
+        }
+
+        [UnityTest]
         public IEnumerator 화면을_옮기면_하나만_보인다()
         {
             _router.StartPractice(3);

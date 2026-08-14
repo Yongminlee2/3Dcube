@@ -14,9 +14,13 @@ namespace Cube.App
     /// </summary>
     public sealed class ColorInputScreen : MonoBehaviour
     {
+        const int StableFrameRequirement = 5;
+        const int SampleHistoryCapacity = 9;
+        const float StableFrameDifference = 0.055f;
+
         static readonly Face[] CaptureOrder =
         {
-            Face.U, Face.F, Face.R, Face.B, Face.L, Face.D,
+            Face.F, Face.U, Face.D, Face.L, Face.R, Face.B,
         };
 
         static readonly (Face face, int col, int row)[] NetLayout =
@@ -27,7 +31,9 @@ namespace Cube.App
         };
 
         static readonly string[] FaceNames = { "위", "아래", "앞", "뒤", "왼쪽", "오른쪽" };
-        static readonly string[] CaptureNames = { "위", "앞", "오른쪽", "뒤", "왼쪽", "아래" };
+        static readonly string[] CaptureNames = { "앞", "위", "아래", "왼쪽", "오른쪽", "뒤" };
+        static readonly string[] PhysicalColorNames =
+            { "노란색", "흰색", "초록색", "파란색", "빨간색", "주황색" };
 
         public CubeState Current { get; private set; }
         public byte SelectedColor { get; private set; }
@@ -48,8 +54,13 @@ namespace Cube.App
 
         readonly Color[][] _samplesByFace = new Color[6][];
         readonly bool[] _captured = new bool[6];
+        readonly Color[][] _sampleHistory = new Color[SampleHistoryCapacity][];
         Color[] _liveSamples;
+        Color[] _previousFrameSamples;
+        int _sampleHistoryCount;
+        int _sampleHistoryCursor;
         int _captureSlot;
+        bool _centerMismatchArmed;
         bool _built;
         bool _scanMode = true;
 
@@ -59,6 +70,9 @@ namespace Cube.App
         Image[] _liveCells;
         Text _progress;
         Text _instruction;
+        Image _targetColorBanner;
+        Text _targetColorLabel;
+        Text _orientationGuide;
         Button[] _faceButtons;
         Image[,] _facePreviewCells;
         Outline[] _faceOutlines;
@@ -82,9 +96,12 @@ namespace Cube.App
         Outline _editStatusOutline;
 
         WebCamTexture _camera;
+        Rect _cameraCropUv = new Rect(0f, 0f, 1f, 1f);
         float _nextLiveSampleAt;
         int _lastRotation = -1;
         bool _lastMirrored;
+        int _lastCameraWidth = -1;
+        int _lastCameraHeight = -1;
 #if UNITY_ANDROID && !UNITY_EDITOR
         PermissionCallbacks _permissionCallbacks;
 #endif
@@ -163,9 +180,15 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)orientation.transform,
                 new Vector2(0.81f, 0.91f), new Vector2(0.95f, 0.995f), Vector4.zero);
 
-            var cameraCard = UiKit.Card(_scanRoot, "CameraCard", _p, raised: true);
-            UiKit.Stretch(cameraCard,
+            var cameraSlot = UiKit.Panel(_scanRoot, "CameraSlot", new Color(0f, 0f, 0f, 0f));
+            UiKit.Stretch(cameraSlot,
                 new Vector2(0.055f, 0.445f), new Vector2(0.945f, 0.905f), Vector4.zero);
+
+            var cameraCard = UiKit.Card(cameraSlot, "CameraCard", _p, raised: true);
+            UiKit.Stretch(cameraCard, Vector2.zero, Vector2.one, Vector4.zero);
+            var cameraAspect = cameraCard.gameObject.AddComponent<AspectRatioFitter>();
+            cameraAspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            cameraAspect.aspectRatio = 1f;
             UiKit.AddSoftOutline(cameraCard.GetComponent<Image>(), _p.Border, 1f);
             cameraCard.gameObject.AddComponent<RectMask2D>();
 
@@ -188,7 +211,7 @@ namespace Cube.App
 
             var overlay = UiKit.Panel(cameraCard, "DetectionGrid", new Color(0, 0, 0, 0));
             UiKit.Stretch(overlay,
-                new Vector2(0.20f, 0.13f), new Vector2(0.80f, 0.87f), Vector4.zero);
+                new Vector2(0.17f, 0.17f), new Vector2(0.83f, 0.83f), Vector4.zero);
             _liveCells = new Image[9];
             for (int row = 0; row < 3; row++)
                 for (int col = 0; col < 3; col++)
@@ -211,6 +234,36 @@ namespace Cube.App
                         new Vector2(0.43f, 0.43f), new Vector2(0.57f, 0.57f), Vector4.zero);
                     _liveCells[index] = dot;
                 }
+
+            _targetColorBanner = UiKit.Cell(cameraCard, "TargetColorBanner", Color.white);
+            _targetColorBanner.sprite = UiKit.RoundedPill;
+            _targetColorBanner.type = Image.Type.Sliced;
+            UiKit.Stretch((RectTransform)_targetColorBanner.transform,
+                new Vector2(0.12f, 0.86f), new Vector2(0.88f, 0.975f), Vector4.zero);
+            UiKit.AddSoftOutline(_targetColorBanner, new Color(1f, 1f, 1f, 0.72f), 2f);
+            _targetColorLabel = UiKit.Label(_targetColorBanner.transform, "Label", "", 30,
+                Color.black, TextAnchor.MiddleCenter);
+            _targetColorLabel.fontStyle = FontStyle.Bold;
+            _targetColorLabel.resizeTextForBestFit = true;
+            _targetColorLabel.resizeTextMinSize = 21;
+            _targetColorLabel.resizeTextMaxSize = 30;
+            UiKit.Stretch((RectTransform)_targetColorLabel.transform,
+                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), Vector4.zero);
+
+            var directionCard = UiKit.Panel(cameraCard, "OrientationGuide",
+                new Color(0.025f, 0.035f, 0.05f, 0.88f));
+            directionCard.GetComponent<Image>().sprite = UiKit.RoundedPill;
+            directionCard.GetComponent<Image>().type = Image.Type.Sliced;
+            UiKit.Stretch(directionCard,
+                new Vector2(0.08f, 0.755f), new Vector2(0.92f, 0.845f), Vector4.zero);
+            _orientationGuide = UiKit.Label(directionCard, "Label", "", 23,
+                Color.white, TextAnchor.MiddleCenter);
+            _orientationGuide.fontStyle = FontStyle.Bold;
+            _orientationGuide.resizeTextForBestFit = true;
+            _orientationGuide.resizeTextMinSize = 17;
+            _orientationGuide.resizeTextMaxSize = 23;
+            UiKit.Stretch((RectTransform)_orientationGuide.transform,
+                new Vector2(0.025f, 0.08f), new Vector2(0.975f, 0.92f), Vector4.zero);
 
             var strip = UiKit.Card(_scanRoot, "CapturedFaces", _p);
             UiKit.Stretch(strip,
@@ -510,8 +563,18 @@ namespace Cube.App
         void SelectCaptureSlot(int slot)
         {
             if (slot < 0 || slot >= CaptureOrder.Length) return;
+            Face requestedFace = CaptureOrder[slot];
+            if (slot != _captureSlot && !_captured[(int)requestedFace])
+            {
+                _scanStatusTitle.text = "앞면부터 순서대로 촬영해 주세요";
+                _scanStatusBody.text = "방향이 섞이지 않도록 현재 파란 테두리의 면을 먼저 저장합니다.";
+                _scanStatusTitle.color = _p.Warning;
+                _scanStatusIcon.color = _p.Warning;
+                return;
+            }
             _captureSlot = slot;
-            _liveSamples = null;
+            _centerMismatchArmed = false;
+            ResetLiveSampling();
             RefreshScanUi();
         }
 
@@ -531,30 +594,48 @@ namespace Cube.App
 
         void CaptureCurrentFace()
         {
-            if (_liveSamples == null || _liveSamples.Length != 9)
+            if (_liveSamples == null || _liveSamples.Length != 9
+                || _sampleHistoryCount < StableFrameRequirement)
             {
                 _scanStatusTitle.text = "카메라가 아직 준비되지 않았어요";
-                _scanStatusBody.text = "큐브 한 면을 격자 안에 맞춘 뒤 잠시 기다려 주세요.";
+                _scanStatusBody.text = "반사광을 피하고 격자에 맞춘 뒤 약 1초간 고정해 주세요.";
                 _scanStatusTitle.color = _p.Warning;
                 _scanStatusIcon.color = _p.Warning;
                 return;
             }
 
-            ApplyScannedFace(CaptureOrder[_captureSlot], _liveSamples);
+            Face expectedFace = CaptureOrder[_captureSlot];
+            Face detectedFace = CubeColorRecognizer.DetectPhysicalFace(_liveSamples[4]);
+            if (detectedFace != expectedFace && !_centerMismatchArmed)
+            {
+                _centerMismatchArmed = true;
+                _scanStatusTitle.text = "중심색 확인이 필요해요";
+                _scanStatusBody.text = $"카메라는 {PhysicalColorNames[(int)detectedFace]}으로 읽었지만 오인식일 수 있어요. "
+                    + $"실제로 {PhysicalColorNames[(int)expectedFace]}이 맞다면 버튼을 한 번 더 누르세요.";
+                _scanStatusTitle.color = _p.Warning;
+                _scanStatusIcon.color = _p.Warning;
+                _primaryScanLabel.text = "그래도 이 면으로 저장";
+                return;
+            }
+
+            _centerMismatchArmed = false;
+            ApplyScannedFace(expectedFace, _liveSamples);
             int next = NextUncapturedSlot(_captureSlot + 1);
             if (next >= 0) _captureSlot = next;
+            ResetLiveSampling();
             RefreshScanUi();
         }
 
         /// 테스트와 향후 네이티브 카메라 연동에서도 같은 인식 경로를 쓰는 입구다.
-        public void ApplyScannedFace(Face face, Color[] samples)
+        public bool ApplyScannedFace(Face face, Color[] samples)
         {
-            if (samples == null || samples.Length != 9) return;
+            if (samples == null || samples.Length != 9) return false;
             _samplesByFace[(int)face] = (Color[])samples.Clone();
             _captured[(int)face] = true;
             RebuildRecognizedState();
             RefreshCells();
             RefreshScanUi();
+            return true;
         }
 
         int NextUncapturedSlot(int start)
@@ -569,7 +650,8 @@ namespace Cube.App
 
         void RebuildRecognizedState()
         {
-            var centers = (Color[])SkinService.Current.StickerColors.Clone();
+            // Physical capture must not depend on the visual skin selected for the 3D cube.
+            var centers = CubeColorRecognizer.PhysicalReferenceColors();
             for (int face = 0; face < 6; face++)
                 if (_captured[face] && _samplesByFace[face] != null)
                     centers[face] = _samplesByFace[face][4];
@@ -581,17 +663,30 @@ namespace Cube.App
             if (_progress == null) return;
             int count = CapturedFaceCount;
             _progress.text = $"{count} / 6면";
-            _instruction.text = CaptureInstruction(CaptureOrder[_captureSlot]);
+            Face targetFace = CaptureOrder[_captureSlot];
+            _instruction.text = CaptureInstruction(targetFace);
+            if (_targetColorBanner != null)
+            {
+                Color targetColor = CubeColorRecognizer.PhysicalReferenceColors()[(int)targetFace];
+                _targetColorBanner.color = targetColor;
+                float luminance = 0.299f * targetColor.r + 0.587f * targetColor.g
+                    + 0.114f * targetColor.b;
+                _targetColorLabel.color = luminance > 0.55f
+                    ? new Color(0.04f, 0.05f, 0.07f) : Color.white;
+                _targetColorLabel.text =
+                    $"{_captureSlot + 1}/6  {FaceNames[(int)targetFace]}면 · {PhysicalColorNames[(int)targetFace]} 중심";
+            }
+            if (_orientationGuide != null)
+                _orientationGuide.text = OrientationGuide(targetFace);
 
-            var skin = SkinService.Current;
             for (int slot = 0; slot < 6; slot++)
             {
                 Face face = CaptureOrder[slot];
                 bool done = _captured[(int)face];
                 for (int cell = 0; cell < 9; cell++)
                 {
-                    Color color = done
-                        ? skin.StickerColors[Current.Facelets[Current.IndexOf(face, cell / 3, cell % 3)]]
+                    Color color = done && _samplesByFace[(int)face] != null
+                        ? _samplesByFace[(int)face][cell]
                         : _p.SurfaceMuted;
                     _facePreviewCells[slot, cell].color = color;
                 }
@@ -612,14 +707,14 @@ namespace Cube.App
             else if (count > 0)
             {
                 _scanStatusTitle.text = $"{count}개 면을 저장했습니다";
-                _scanStatusBody.text = "위의 작은 면을 누르면 다시 촬영할 수 있습니다.";
+                _scanStatusBody.text = "위의 작은 면은 촬영한 원본색입니다. 누르면 다시 촬영할 수 있습니다.";
                 _primaryScanLabel.text = _captured[(int)CaptureOrder[_captureSlot]]
                     ? "이 면 다시 촬영" : "다음 면 촬영";
             }
             else
             {
                 _scanStatusTitle.text = "촬영을 시작해 주세요";
-                _scanStatusBody.text = "안내된 방향을 유지하고 큐브 한 면을 격자에 맞춰 주세요.";
+                _scanStatusBody.text = "반사광을 피하고 격자에 맞춘 뒤 약 1초간 고정해 주세요.";
                 _primaryScanLabel.text = "다음 면 촬영";
             }
             _editButton.interactable = count > 0;
@@ -645,12 +740,25 @@ namespace Cube.App
         {
             switch (face)
             {
-                case Face.U: return "노란 윗면 · 파란 면이 위쪽";
-                case Face.F: return "초록 앞면 · 노란 면이 위쪽";
-                case Face.R: return "주황 오른쪽 면 · 노란 면이 위쪽";
-                case Face.B: return "파란 뒷면 · 노란 면이 위쪽";
-                case Face.L: return "빨간 왼쪽 면 · 노란 면이 위쪽";
-                default: return "흰 아래면 · 초록 면이 위쪽";
+                case Face.F: return "① 초록 앞면으로 기준 잡기";
+                case Face.U: return "② 앞면에서 윗면을 카메라 쪽으로";
+                case Face.D: return "③ 앞면에서 아랫면을 카메라 쪽으로";
+                case Face.L: return "④ 앞면에서 왼쪽 면을 카메라 쪽으로";
+                case Face.R: return "⑤ 앞면에서 오른쪽 면을 카메라 쪽으로";
+                default: return "⑥ 노란색을 위로 둔 채 뒤로 180°";
+            }
+        }
+
+        static string OrientationGuide(Face face)
+        {
+            switch (face)
+            {
+                case Face.F: return "노랑 ↑    빨강 ←  중심  → 주황    흰색 ↓";
+                case Face.U: return "파랑 ↑    빨강 ←  중심  → 주황    초록 ↓";
+                case Face.D: return "초록 ↑    빨강 ←  중심  → 주황    파랑 ↓";
+                case Face.L: return "노랑 ↑    파랑 ←  중심  → 초록    흰색 ↓";
+                case Face.R: return "노랑 ↑    초록 ←  중심  → 파랑    흰색 ↓";
+                default: return "노랑 ↑    주황 ←  중심  → 빨강    흰색 ↓";
             }
         }
 
@@ -680,7 +788,7 @@ namespace Cube.App
                 _captured[face] = false;
             }
             _captureSlot = 0;
-            _liveSamples = null;
+            ResetLiveSampling();
             RefreshCells();
             RefreshSwatches();
             RefreshScanUi();
@@ -831,8 +939,11 @@ namespace Cube.App
             if (_cameraPreview != null) _cameraPreview.texture = null;
             Destroy(_camera);
             _camera = null;
-            _liveSamples = null;
+            ResetLiveSampling();
             _lastRotation = -1;
+            _lastCameraWidth = -1;
+            _lastCameraHeight = -1;
+            _cameraCropUv = new Rect(0f, 0f, 1f, 1f);
         }
 
         void Update()
@@ -843,25 +954,96 @@ namespace Cube.App
             ConfigureCameraPreview();
             if (Time.unscaledTime < _nextLiveSampleAt) return;
             _nextLiveSampleAt = Time.unscaledTime + 0.12f;
-            _liveSamples = SampleGrid();
-            if (_liveSamples == null) return;
+            Color[] frameSamples = SampleGrid();
+            if (frameSamples == null) return;
+            PushSampleFrame(frameSamples);
+            _liveSamples = StabilizedSamples();
 
-            _cameraMessage.gameObject.SetActive(false);
+            bool stable = _sampleHistoryCount >= StableFrameRequirement;
+            _cameraMessage.text = stable ? "" : $"색상 안정화 중  {_sampleHistoryCount} / {StableFrameRequirement}";
+            _cameraMessage.gameObject.SetActive(!stable);
+            if (_primaryScanButton != null && CapturedFaceCount < 6)
+                _primaryScanButton.interactable = stable;
             for (int i = 0; i < 9; i++)
             {
                 _liveCells[i].color = _liveSamples[i];
             }
         }
 
+        void ResetLiveSampling()
+        {
+            _centerMismatchArmed = false;
+            _liveSamples = null;
+            _previousFrameSamples = null;
+            ClearSampleHistory();
+            if (_primaryScanButton != null && CapturedFaceCount < 6)
+                _primaryScanButton.interactable = false;
+        }
+
+        void ClearSampleHistory()
+        {
+            _sampleHistoryCount = 0;
+            _sampleHistoryCursor = 0;
+            for (int i = 0; i < _sampleHistory.Length; i++) _sampleHistory[i] = null;
+        }
+
+        void PushSampleFrame(Color[] samples)
+        {
+            if (_previousFrameSamples != null
+                && CubeColorRecognizer.FrameDifference(samples, _previousFrameSamples)
+                    > StableFrameDifference)
+            {
+                _centerMismatchArmed = false;
+                ClearSampleHistory();
+                if (_primaryScanButton != null && CapturedFaceCount < 6)
+                    _primaryScanButton.interactable = false;
+            }
+
+            _previousFrameSamples = (Color[])samples.Clone();
+            _sampleHistory[_sampleHistoryCursor] = (Color[])samples.Clone();
+            _sampleHistoryCursor = (_sampleHistoryCursor + 1) % SampleHistoryCapacity;
+            _sampleHistoryCount = Mathf.Min(_sampleHistoryCount + 1, SampleHistoryCapacity);
+        }
+
+        Color[] StabilizedSamples()
+        {
+            var result = new Color[9];
+            var channel = new float[_sampleHistoryCount];
+            for (int cell = 0; cell < 9; cell++)
+            {
+                for (int frame = 0; frame < _sampleHistoryCount; frame++)
+                    channel[frame] = _sampleHistory[frame][cell].r;
+                float red = Median(channel);
+                for (int frame = 0; frame < _sampleHistoryCount; frame++)
+                    channel[frame] = _sampleHistory[frame][cell].g;
+                float green = Median(channel);
+                for (int frame = 0; frame < _sampleHistoryCount; frame++)
+                    channel[frame] = _sampleHistory[frame][cell].b;
+                float blue = Median(channel);
+                result[cell] = new Color(red, green, blue, 1f);
+            }
+            return result;
+        }
+
         void ConfigureCameraPreview()
         {
             int rotation = _camera.videoRotationAngle;
             bool mirrored = _camera.videoVerticallyMirrored;
-            if (rotation == _lastRotation && mirrored == _lastMirrored) return;
+            if (rotation == _lastRotation && mirrored == _lastMirrored
+                && _camera.width == _lastCameraWidth && _camera.height == _lastCameraHeight) return;
             _lastRotation = rotation;
             _lastMirrored = mirrored;
+            _lastCameraWidth = _camera.width;
+            _lastCameraHeight = _camera.height;
+            _cameraCropUv = CubeColorRecognizer.CenterSquareCrop(_camera.width, _camera.height);
             _cameraPreview.rectTransform.localEulerAngles = new Vector3(0f, 0f, -rotation);
-            _cameraPreview.uvRect = mirrored ? new Rect(0f, 1f, 1f, -1f) : new Rect(0f, 0f, 1f, 1f);
+            Rect previewUv = _cameraCropUv;
+            if (mirrored)
+            {
+                previewUv.y += previewUv.height;
+                previewUv.height = -previewUv.height;
+            }
+            _cameraPreview.uvRect = previewUv;
         }
 
         Color[] SampleGrid()
@@ -869,29 +1051,36 @@ namespace Cube.App
             try
             {
                 var samples = new Color[9];
-                const float first = 0.30f;
-                const float step = 0.20f;
-                const float patch = 0.012f;
+                const float first = 0.28f;
+                const float step = 0.22f;
+                const float patch = 0.014f;
+                var reds = new float[49];
+                var greens = new float[49];
+                var blues = new float[49];
                 for (int row = 0; row < 3; row++)
                     for (int col = 0; col < 3; col++)
                     {
                         Vector2 previewUv = new Vector2(first + col * step, 1f - (first + row * step));
-                        Color sum = Color.black;
                         int count = 0;
-                        for (int py = -2; py <= 2; py++)
-                            for (int px = -2; px <= 2; px++)
+                        for (int py = -3; py <= 3; py++)
+                            for (int px = -3; px <= 3; px++)
                             {
                                 Vector2 uv = previewUv + new Vector2(px * patch, py * patch);
                                 uv = CubeColorRecognizer.PreviewToTextureUv(
                                     uv, _camera.videoRotationAngle, _camera.videoVerticallyMirrored);
+                                uv = CubeColorRecognizer.ApplyCrop(uv, _cameraCropUv);
                                 int x = Mathf.Clamp(Mathf.RoundToInt(uv.x * (_camera.width - 1)),
                                     0, _camera.width - 1);
                                 int y = Mathf.Clamp(Mathf.RoundToInt(uv.y * (_camera.height - 1)),
                                     0, _camera.height - 1);
-                                sum += _camera.GetPixel(x, y);
+                                Color pixel = _camera.GetPixel(x, y);
+                                reds[count] = pixel.r;
+                                greens[count] = pixel.g;
+                                blues[count] = pixel.b;
                                 count++;
                             }
-                        samples[row * 3 + col] = sum / count;
+                        samples[row * 3 + col] = new Color(
+                            Median(reds), Median(greens), Median(blues), 1f);
                     }
                 return samples;
             }
@@ -900,6 +1089,15 @@ namespace Cube.App
                 Debug.LogWarning($"[CubeCamera] 색상 표본을 읽지 못했습니다: {exception.Message}");
                 return null;
             }
+        }
+
+        static float Median(float[] values)
+        {
+            Array.Sort(values);
+            int middle = values.Length / 2;
+            return values.Length % 2 == 0
+                ? (values[middle - 1] + values[middle]) * 0.5f
+                : values[middle];
         }
     }
 }

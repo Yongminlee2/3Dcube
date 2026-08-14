@@ -69,13 +69,19 @@ namespace Cube.App.Tests
             AppSettings.CubeSize = 4;
             AppSettings.AnimationMs = 60;
             AppSettings.Inspection = true;
+            AppSettings.BackgroundMusic = false;
+            AppSettings.SoundEffects = false;
             Assert.AreEqual(4, AppSettings.CubeSize);
             Assert.AreEqual(60, AppSettings.AnimationMs);
             Assert.IsTrue(AppSettings.Inspection);
+            Assert.IsFalse(AppSettings.BackgroundMusic);
+            Assert.IsFalse(AppSettings.SoundEffects);
 
             AppSettings.CubeSize = 3;
             AppSettings.AnimationMs = 120;
             AppSettings.Inspection = false;
+            AppSettings.BackgroundMusic = true;
+            AppSettings.SoundEffects = true;
         }
     }
 }

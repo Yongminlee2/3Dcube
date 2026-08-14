@@ -36,6 +36,7 @@ namespace Cube.App
             Store.Load();
             Router = gameObject.AddComponent<ScreenRouter>();
             Router.Build(UiCanvas, Store);
+            AudioService.Init(transform);
         }
 
         void OnDestroy()
@@ -54,6 +55,7 @@ namespace Cube.App
             var go = new GameObject("CubeCamera");
             go.transform.SetParent(transform, false);
             var cam = go.AddComponent<Camera>();
+            go.AddComponent<AudioListener>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.orthographic = false;
             cam.fieldOfView = 40f;

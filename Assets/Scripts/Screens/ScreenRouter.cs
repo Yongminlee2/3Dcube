@@ -22,6 +22,7 @@ namespace Cube.App
         SettingsScreen _settings;
         RectTransform _canvasRect;
         RectTransform _screenRoot;
+        ScreenId _skinReturn = ScreenId.Settings;
 
         public void Build(Canvas canvas, SessionStore store)
         {
@@ -37,13 +38,14 @@ namespace Cube.App
             _home = new GameObject("HomeScreen").AddComponent<HomeScreen>();
             _home.Build(_screenRoot, StartPractice, () => Go(ScreenId.Learn),
                         () => Go(ScreenId.ColorInput),
-                        () => Go(ScreenId.Records), () => Go(ScreenId.Settings));
+                        () => Go(ScreenId.Records), () => OpenSkins(ScreenId.Home),
+                        () => Go(ScreenId.Settings));
 
             Records = new GameObject("RecordsScreen").AddComponent<RecordsScreen>();
             Records.Build(_screenRoot, store, () => Go(ScreenId.Home));
 
             _settings = new GameObject("SettingsScreen").AddComponent<SettingsScreen>();
-            _settings.Build(_screenRoot, () => Go(ScreenId.Home), () => Go(ScreenId.Skins));
+            _settings.Build(_screenRoot, () => Go(ScreenId.Home), () => OpenSkins(ScreenId.Settings));
 
             Learn = new GameObject("LearnScreen").AddComponent<LearnScreen>();
             Learn.Build(_screenRoot, OpenLesson, () => Go(ScreenId.Library), () => Go(ScreenId.Home));
@@ -58,7 +60,7 @@ namespace Cube.App
             ColorInput.Build(_screenRoot, AcceptRealCube, () => Go(ScreenId.Home));
 
             Skins = new GameObject("SkinScreen").AddComponent<SkinScreen>();
-            Skins.Build(_screenRoot, () => Go(ScreenId.Settings));
+            Skins.Build(_screenRoot, () => Go(_skinReturn));
 
             // 화면을 만드는 도중에 무엇이 터지더라도 전부 겹쳐 보이지는 않게 한다.
             // 실기기에서 셰이더 예외로 Build가 중단됐을 때 정확히 그렇게 됐다.
@@ -102,6 +104,12 @@ namespace Cube.App
         {
             Lesson.Open(stage);
             Go(ScreenId.Lesson);
+        }
+
+        void OpenSkins(ScreenId returnTo)
+        {
+            _skinReturn = returnTo;
+            Go(ScreenId.Skins);
         }
 
         /// 홈에서 부르고, 테스트도 이 입구로 연습 화면을 연다.
@@ -185,13 +193,17 @@ namespace Cube.App
                 switch (id)
                 {
                     case ScreenId.Lesson:
-                        AppBootstrap.Instance.SetCubePresentation(0.72f, 0.25f);
+                        // 설명 문구 아래, 코치 카드 위에 큐브를 둔다. 0.25는
+                        // Galaxy A16에서 안내 문구와 큐브가 겹칠 만큼 높았다.
+                        AppBootstrap.Instance.SetCubePresentation(0.68f, 0.125f);
                         break;
                     case ScreenId.Library:
                         AppBootstrap.Instance.SetCubePresentation(0.52f, 0.28f);
                         break;
                     case ScreenId.Skins:
-                        AppBootstrap.Instance.SetCubePresentation(0.60f, 0.25f);
+                        // The safe-area preview card is centred around viewport y=0.67. Keep the
+                        // shared 3D cube on that same centre instead of floating above it.
+                        AppBootstrap.Instance.SetCubePresentation(0.60f, 0.17f);
                         break;
                     default:
                         // 전개도가 기본으로 접혀 스크램블 카드 밑에 얇은 띠만 남으므로,
@@ -215,7 +227,7 @@ namespace Cube.App
             if (!Input.GetKeyDown(KeyCode.Escape)) return;
             if (Current == ScreenId.Home) Application.Quit();
             else if (Current == ScreenId.Lesson || Current == ScreenId.Library) Go(ScreenId.Learn);
-            else if (Current == ScreenId.Skins) Go(ScreenId.Settings);
+            else if (Current == ScreenId.Skins) Go(_skinReturn);
             else Go(ScreenId.Home);
         }
     }

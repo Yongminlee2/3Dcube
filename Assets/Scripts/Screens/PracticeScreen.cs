@@ -35,6 +35,8 @@ namespace Cube.App
         const float NetTop = 0.835f;
         const float NetExpandedBottom = 0.605f;
         const float NetCollapsedBottom = 0.795f;
+        const float ContentLeft = 0.05f;
+        const float ContentRight = 0.95f;
         int _n;
         int _movesSinceScramble;
         bool _armed;                 // 섞은 뒤 아직 첫 수를 두지 않은 상태
@@ -129,7 +131,9 @@ namespace Cube.App
             var netCard = UiKit.Card(transform, "NetCard", p);
             _netCard = netCard.gameObject;
             _netCardRect = netCard;
-            UiKit.Stretch(netCard, new Vector2(0.10f, NetExpandedBottom), new Vector2(0.90f, NetTop), Vector4.zero);
+            UiKit.Stretch(netCard,
+                new Vector2(ContentLeft, NetExpandedBottom),
+                new Vector2(ContentRight, NetTop), Vector4.zero);
             UiKit.AddSoftOutline(netCard.GetComponent<Image>(), p.Border, 0.8f);
             var netTitle = UiKit.Label(netCard, "NetTitle", "전개도", UiMetrics.Caption,
                 p.TextSecondary, TextAnchor.MiddleLeft);
@@ -158,17 +162,21 @@ namespace Cube.App
             _net.Expanded = AppSettings.ShowNet;
             RefreshNetToggle();
 
-            BuildHintCard(p);
+            float padBottom = 0.087f;
+            float padTop = _n >= 4 ? 0.205f : 0.155f;
+            BuildHintCard(p, padTop + 0.012f, padTop + 0.094f);
 
             var padRoot = UiKit.Panel(transform, "Pad", new Color(0, 0, 0, 0));
-            UiKit.Stretch(padRoot, new Vector2(0.045f, 0.11f), new Vector2(0.955f, 0.235f), Vector4.zero);
+            UiKit.Stretch(padRoot,
+                new Vector2(ContentLeft, padBottom), new Vector2(ContentRight, padTop), Vector4.zero);
             _padRoot = padRoot.gameObject;
             _pad = padRoot.gameObject.AddComponent<NotationPad>();
             _pad.Build(padRoot, _n, p, ApplyMove);
             _padRoot.SetActive(AppSettings.ShowPad);
 
             var bar = UiKit.Card(transform, "Bar", p, raised: true);
-            UiKit.Stretch(bar, new Vector2(0.045f, 0.018f), new Vector2(0.955f, 0.095f), Vector4.zero);
+            UiKit.Stretch(bar,
+                new Vector2(ContentLeft, 0.018f), new Vector2(ContentRight, 0.075f), Vector4.zero);
             UiKit.AddSoftOutline(bar.GetComponent<Image>(), p.Border, 1f);
             MakeBarButton(bar, "섞기", "shuffle", 0, Scramble, p, true, false);
             MakeBarButton(bar, "힌트", "lightbulb", 1, ShowHint, p, false, false);
@@ -179,26 +187,26 @@ namespace Cube.App
         Button _netToggle;
         Hint _hint;
 
-        void BuildHintCard(Palette p)
+        void BuildHintCard(Palette p, float bottom, float top)
         {
             var card = UiKit.Card(transform, "Hint", p, raised: true);
             _hintCard = card.gameObject;
             UiKit.Stretch(card,
-                new Vector2(0.045f, 0.245f), new Vector2(0.955f, 0.335f), Vector4.zero);
+                new Vector2(ContentLeft, bottom), new Vector2(ContentRight, top), Vector4.zero);
             UiKit.AddSoftOutline(card.GetComponent<Image>(), p.Border, 1f);
 
-            var tag = UiKit.Label(card, "HintTag", "힌트", UiMetrics.Micro,
+            var tag = UiKit.Label(card, "HintTag", "힌트", 20,
                 p.Accent, TextAnchor.MiddleLeft);
             tag.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)tag.transform,
                 new Vector2(0.035f, 0.52f), new Vector2(0.26f, 0.90f), Vector4.zero);
 
             _hintNotation = UiKit.Label(card, "HintNotation", "직접 조작",
-                28, p.TextPrimary, TextAnchor.MiddleLeft);
+                30, p.TextPrimary, TextAnchor.MiddleLeft);
             _hintNotation.fontStyle = FontStyle.Bold;
             _hintNotation.resizeTextForBestFit = true;
             _hintNotation.resizeTextMinSize = 17;
-            _hintNotation.resizeTextMaxSize = 28;
+            _hintNotation.resizeTextMaxSize = 30;
             UiKit.Stretch((RectTransform)_hintNotation.transform,
                 new Vector2(0.035f, 0.10f), new Vector2(0.29f, 0.56f), Vector4.zero);
 
@@ -208,10 +216,10 @@ namespace Cube.App
 
             _hintExplanation = UiKit.Label(card, "HintExplanation",
                 "힌트를 누르면 다음 동작을 설명해 드려요. 큐브는 자동으로 움직이지 않습니다.",
-                20, p.TextSecondary, TextAnchor.MiddleLeft);
+                23, p.TextSecondary, TextAnchor.MiddleLeft);
             _hintExplanation.resizeTextForBestFit = true;
-            _hintExplanation.resizeTextMinSize = 15;
-            _hintExplanation.resizeTextMaxSize = 20;
+            _hintExplanation.resizeTextMinSize = 18;
+            _hintExplanation.resizeTextMaxSize = 23;
             UiKit.Wrap(_hintExplanation);
             UiKit.Stretch((RectTransform)_hintExplanation.transform,
                 new Vector2(0.35f, 0.12f), new Vector2(0.965f, 0.88f), Vector4.zero);
@@ -234,8 +242,8 @@ namespace Cube.App
 
             if (_netCardRect != null)
                 UiKit.Stretch(_netCardRect,
-                    new Vector2(0.10f, expanded ? NetExpandedBottom : NetCollapsedBottom),
-                    new Vector2(0.90f, NetTop), Vector4.zero);
+                    new Vector2(ContentLeft, expanded ? NetExpandedBottom : NetCollapsedBottom),
+                    new Vector2(ContentRight, NetTop), Vector4.zero);
             if (_netTitleRect != null)
                 UiKit.Stretch(_netTitleRect,
                     new Vector2(0.055f, expanded ? 0.84f : 0f),
@@ -310,11 +318,11 @@ namespace Cube.App
             btn.image.sprite = UiKit.RoundedTight;
 
             var text = btn.transform.Find("Label").GetComponent<Text>();
-            text.fontSize = 18;
+            text.fontSize = 24;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.LowerCenter;
             UiKit.Stretch((RectTransform)text.transform,
-                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.44f), Vector4.zero);
+                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.47f), Vector4.zero);
 
             Color color = danger
                 ? new Color(1f, 0.34f, 0.38f, 1f)
@@ -322,7 +330,7 @@ namespace Cube.App
             text.color = color;
             var icon = UiKit.Icon(btn.transform, "Icon", iconName, color);
             UiKit.Stretch((RectTransform)icon.transform,
-                new Vector2(0.39f, 0.49f), new Vector2(0.61f, 0.86f), Vector4.zero);
+                new Vector2(0.35f, 0.50f), new Vector2(0.65f, 0.88f), Vector4.zero);
 
             if (index > 0)
             {
@@ -370,6 +378,7 @@ namespace Cube.App
             {
                 Timer.Stop();
                 Solved?.Invoke(Timer.ElapsedMs, CurrentScramble, _movesSinceScramble);
+                AudioService.PlaySuccess();
             }
         }
 

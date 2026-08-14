@@ -325,6 +325,7 @@ namespace Cube.App
             StyleButton(btn, p, variant);
 
             if (onClick != null) btn.onClick.AddListener(onClick);
+            btn.onClick.AddListener(AudioService.PlayClick);
             return btn;
         }
 
