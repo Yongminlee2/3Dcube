@@ -158,6 +158,16 @@ namespace Cube.App.Tests
             Assert.AreEqual(5, passedStage, "통과 알림이 오지 않았다");
             Assert.IsTrue(LearnProgress.IsDone(5));
             Assert.IsTrue(LearnProgress.IsUnlocked(6));
+
+            var nextStage = _router.Lesson.transform.Find("NextStage")
+                ?.GetComponent<UnityEngine.UI.Button>();
+            Assert.IsNotNull(nextStage, "완료 뒤 다음 단계 버튼이 없다");
+            Assert.IsTrue(nextStage.gameObject.activeSelf, "완료 뒤 다음 단계 버튼이 보이지 않는다");
+
+            nextStage.onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(ScreenId.Lesson, _router.Current);
+            Assert.AreEqual(6, _router.Lesson.Stage, "목록으로 나가지 않고 바로 다음 단계가 열려야 한다");
         }
 
         [UnityTest]
@@ -184,6 +194,23 @@ namespace Cube.App.Tests
 
             Assert.IsTrue(before.SameAs(CubeStateNow()),
                 "단계 힌트는 설명만 하고 시연을 시작하면 안 된다");
+        }
+
+        [UnityTest]
+        public IEnumerator 설명중_힌트는_혼자하라고_하지_않고_방법을_알려준다()
+        {
+            _router.OpenLesson(1);
+            yield return null;
+
+            _router.Lesson.ShowHint();
+            yield return null;
+
+            var status = _router.Lesson.transform.Find("StatusCard/Status")
+                ?.GetComponent<UnityEngine.UI.Text>();
+            Assert.IsNotNull(status);
+            Assert.That(status.text, Does.Contain("흰색"));
+            Assert.That(status.text, Does.Contain("센터"));
+            Assert.That(status.text, Does.Not.Contain("이미 다 맞췄습니다"));
         }
 
         [UnityTest]

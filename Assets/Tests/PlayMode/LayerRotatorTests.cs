@@ -159,6 +159,8 @@ namespace Cube.App.Tests
             _rotator.ApplyInstant(MoveNotation.Parse("F' U' R'", 3));
 
             Assert.IsTrue(_renderer.State.IsSolved());
+            Assert.IsTrue(_renderer.IsSolvedWithArtwork(),
+                "색뿐 아니라 그림 조각의 상하좌우 방향도 원래대로 돌아와야 한다");
             for (int f = 0; f < 6; f++)
                 for (int row = 0; row < 3; row++)
                     for (int col = 0; col < 3; col++)

@@ -51,7 +51,7 @@ namespace Cube.App
             Learn.Build(_screenRoot, OpenLesson, () => Go(ScreenId.Library), () => Go(ScreenId.Home));
 
             Lesson = new GameObject("LessonScreen").AddComponent<LessonScreen>();
-            Lesson.Build(_screenRoot, () => Go(ScreenId.Learn));
+            Lesson.Build(_screenRoot, () => Go(ScreenId.Learn), OpenLesson);
 
             Library = new GameObject("AlgorithmScreen").AddComponent<AlgorithmScreen>();
             Library.Build(_screenRoot, () => Go(ScreenId.Learn));

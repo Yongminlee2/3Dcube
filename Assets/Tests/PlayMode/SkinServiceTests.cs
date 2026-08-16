@@ -151,6 +151,82 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
+        public IEnumerator 섞인_저장상태에서도_그림_센터는_가운데_조각이다()
+        {
+            var textured = System.Array.Find(SkinService.All, HasTexture);
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            var scrambled = CubeState.Solved(3);
+            scrambled.Apply(MoveNotation.Parse("R U F2 L'", 3));
+            _renderer.Build(scrambled);
+            yield return null;
+
+            for (int face = 0; face < Faces.Count; face++)
+            {
+                if (textured.StickerTextures[face] == null) continue;
+                var center = _renderer.StickerAt((Face)face, 1, 1).sharedMaterial;
+                Assert.That(center.mainTextureOffset.x, Is.EqualTo(1f / 3f).Within(0.001f),
+                    $"{(Face)face}면 센터 그림의 가로 조각이 가운데가 아니다");
+                Assert.That(center.mainTextureOffset.y, Is.EqualTo(1f / 3f).Within(0.001f),
+                    $"{(Face)face}면 센터 그림의 세로 조각이 가운데가 아니다");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator 섞인_저장상태를_풀면_한면_그림도_제자리로_복원된다()
+        {
+            var textured = System.Array.Find(SkinService.All, HasTexture);
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            var moves = MoveNotation.Parse("R U F2 L'", 3);
+            var scrambled = CubeState.Solved(3);
+            scrambled.Apply(moves);
+            _renderer.Build(scrambled);
+
+            var rotator = _go.AddComponent<LayerRotator>();
+            rotator.Init(_renderer);
+            for (int i = moves.Count - 1; i >= 0; i--)
+                rotator.ApplyInstant(new[] { moves[i].Inverse });
+            yield return null;
+
+            Assert.IsTrue(_renderer.State.IsSolved());
+            for (int face = 0; face < Faces.Count; face++)
+            {
+                if (textured.StickerTextures[face] == null) continue;
+                for (int row = 0; row < 3; row++)
+                    for (int col = 0; col < 3; col++)
+                    {
+                        var mat = _renderer.StickerAt((Face)face, row, col).sharedMaterial;
+                        Assert.That(mat.mainTextureOffset.x, Is.EqualTo(col / 3f).Within(0.001f));
+                        Assert.That(mat.mainTextureOffset.y,
+                            Is.EqualTo(1f - (row + 1f) / 3f).Within(0.001f));
+                    }
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator 색이_맞아도_센터_그림_방향이_틀리면_완성이_아니다()
+        {
+            var textured = System.Array.Find(SkinService.All, HasTexture);
+            Assert.IsNotNull(textured);
+            SkinService.Apply(textured);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+            yield return null;
+
+            Assert.IsTrue(_renderer.IsSolvedWithArtwork());
+            var center = _renderer.CubieAt(1, 2, 1).GetComponent<CubieMarker>();
+            center.Orientation = Quaternion.AngleAxis(90f, Vector3.up);
+
+            Assert.IsTrue(_renderer.State.IsSolved(), "색 상태는 여전히 완성이다");
+            Assert.IsFalse(_renderer.IsSolvedWithArtwork(),
+                "센터 그림이 90도 돌아갔는데 완성으로 처리됐다");
+        }
+
+        [UnityTest]
         public IEnumerator 조각_반복_모드는_같은_면_재질을_공유한다()
         {
             var textured = System.Array.Find(SkinService.All, HasTexture);

@@ -21,7 +21,7 @@ namespace Cube.App
         LessonPlayer _player;
 
         Text _title, _body, _pageLabel, _status;
-        Button _prev, _next, _practice, _hint, _rewind;
+        Button _prev, _next, _practice, _hint, _rewind, _nextStage;
         public NotationPad Pad { get; private set; }
         GameObject _padRoot;
         Transform _algRoot;
@@ -31,6 +31,8 @@ namespace Cube.App
         int _page;
         bool _stageCompleted;
         bool _restoringProgress;
+        Action _onBack;
+        Action<int> _onNextStage;
 
         // 읽기와 직접 연습 모두 일반 연습 화면과 같은 크기·중심을 쓴다.
         // 화면마다 큐브 크기가 튀면 손으로 잡았을 때 거리감도 달라 보인다.
@@ -42,9 +44,11 @@ namespace Cube.App
         // 설명 읽을 때 필요한 요소가 직접 손을 대는 동안엔 그냥 자리만 차지한다.
         GameObject _explainGroup;
 
-        public void Build(RectTransform parent, Action onBack)
+        public void Build(RectTransform parent, Action onBack, Action<int> onNextStage = null)
         {
             _p = ThemeService.Current;
+            _onBack = onBack;
+            _onNextStage = onNextStage;
             transform.SetParent(parent, false);
 
             var root = gameObject.GetComponent<RectTransform>();
@@ -210,6 +214,13 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)_rewind.transform,
                 new Vector2(0.71f, 0.015f), new Vector2(0.945f, 0.085f), Vector4.zero);
             StyleActionButton(_rewind, "arrow-left", _p.TextSecondary, 0.32f);
+
+            _nextStage = UiKit.Button(transform, "NextStage", "다음 단계로", _p,
+                OpenNextStage, ButtonVariant.Primary);
+            UiKit.Stretch((RectTransform)_nextStage.transform,
+                new Vector2(0.055f, 0.015f), new Vector2(0.945f, 0.085f), Vector4.zero);
+            StyleActionButton(_nextStage, "chevron-right", _p.TextOnAccent, 0.18f);
+            _nextStage.gameObject.SetActive(false);
         }
 
         void BuildNotationPad()
@@ -316,8 +327,30 @@ namespace Cube.App
         {
             if (_explainGroup != null) _explainGroup.SetActive(!InPractice);
             if (_padRoot != null) _padRoot.SetActive(InPractice && AppSettings.ShowPad);
+            RefreshActionState();
             if (AppBootstrap.Instance == null) return;
             AppBootstrap.Instance.SetCubePresentation(LessonCubeScale, LessonCubeLift);
+        }
+
+        void RefreshActionState()
+        {
+            bool completed = _stageCompleted;
+            if (_practice != null) _practice.gameObject.SetActive(!completed);
+            if (_hint != null) _hint.gameObject.SetActive(!completed);
+            if (_rewind != null) _rewind.gameObject.SetActive(!completed);
+            if (_nextStage == null) return;
+
+            _nextStage.gameObject.SetActive(completed);
+            var label = _nextStage.transform.Find("Label")?.GetComponent<Text>();
+            if (label != null)
+                label.text = Stage < StageChecker.LastStage ? "다음 단계로" : "학습 목록으로";
+        }
+
+        void OpenNextStage()
+        {
+            if (!_stageCompleted) return;
+            if (Stage < StageChecker.LastStage) _onNextStage?.Invoke(Stage + 1);
+            else _onBack?.Invoke();
         }
 
         void BuildAlgorithmCards()
@@ -341,13 +374,13 @@ namespace Cube.App
                 UiKit.Stretch(plate,
                     new Vector2(0.025f, 0.18f), new Vector2(0.115f, 0.82f), Vector4.zero);
 
-                var none = UiKit.Label(card, "NoAlg", "공식 없이 눈으로 찾아보는 단계예요", 22,
+                var none = UiKit.Label(card, "NoAlg", "흰색 십자 조각을 하나씩 맞춰요", 22,
                     _p.TextPrimary, TextAnchor.MiddleLeft);
                 none.fontStyle = FontStyle.Bold;
                 UiKit.Stretch((RectTransform)none.transform,
                     new Vector2(0.14f, 0.47f), new Vector2(0.97f, 0.88f), Vector4.zero);
 
-                var hint = UiKit.Label(card, "NoAlgHint", "큐브를 천천히 돌리며 조각을 살펴보세요", 18,
+                var hint = UiKit.Label(card, "NoAlgHint", "힌트를 누르면 지금 상태에서 필요한 조작을 알려드려요", 18,
                     _p.TextSecondary, TextAnchor.MiddleLeft);
                 UiKit.Stretch((RectTransform)hint.transform,
                     new Vector2(0.14f, 0.10f), new Vector2(0.97f, 0.51f), Vector4.zero);
@@ -389,6 +422,15 @@ namespace Cube.App
         {
             if (_renderer == null || _renderer.State == null) return;
 
+            // 설명을 읽는 상태의 큐브는 완성 상태이므로 HintEngine에 바로 물으면
+            // "이미 다 맞췄습니다"만 나온다. 배우기 화면의 힌트는 먼저 이 단계에서
+            // 무엇을 보고 어떤 공식을 쓸지 알려 주고, 연습 중일 때만 현재 상태를 푼다.
+            if (!InPractice)
+            {
+                SetStatus(LessonOverviewHint());
+                return;
+            }
+
             var hint = HintEngine.Next(_renderer.State);
             if (hint.IsSolved)
             {
@@ -404,6 +446,15 @@ namespace Cube.App
 
             SetStatus($"직접 조작 · {hint.Notation}\n"
                       + $"첫 동작: {MoveNotation.DescribeFirst(hint.Notation)} · {hint.Reason}");
+        }
+
+        string LessonOverviewHint()
+        {
+            if (_lesson.Algorithms.Length == 0)
+                return "흰색이 들어간 두 색 조각을 찾으세요. 흰색을 아래로 보내고, 옆 색은 같은 색 센터에 맞춥니다. 연습하기를 누르면 현재 상태의 조작도 알려드려요.";
+
+            var alg = _lesson.Algorithms[0];
+            return $"{alg.Name} · {alg.Notation}\n{alg.When} · 연습 중에는 현재 상태에 맞는 조작을 알려드려요.";
         }
 
         void PlayAlgorithm(Algorithm alg)
@@ -436,9 +487,24 @@ namespace Cube.App
             _rotator.ApplyInstant(MoveNotation.Parse(_lesson.PracticeSetup, 3));
 
             InPractice = true;
-            SetStatus("직접 맞춰 보세요.");
+            SetStatus(StagePracticePrompt());
             RefreshPracticeLayout();
             SaveProgress();
+        }
+
+        string StagePracticePrompt()
+        {
+            switch (Stage)
+            {
+                case 1:
+                    return "흰색이 들어간 두 색 조각을 찾으세요. 힌트를 누르면 다음 조작을 알려드려요.";
+                case 2:
+                    return "흰색 모서리를 들어갈 자리 위에 놓으세요. 막히면 힌트에서 조작 순서를 확인하세요.";
+                case 3:
+                    return "위층에서 노란색 없는 조각을 찾으세요. 힌트가 오른쪽·왼쪽 공식을 골라드려요.";
+                default:
+                    return "위 면 모양을 확인한 뒤 공식을 따라 하세요. 막히면 힌트에서 현재 상태의 조작을 확인하세요.";
+            }
         }
 
         void OnMoveApplied(Move m)
@@ -463,6 +529,7 @@ namespace Cube.App
                 ? $"통과했습니다. {Stage + 1}단계가 열렸습니다."
                 : "큐브를 다 맞췄습니다.";
             SetStatus(message, success: true);
+            RefreshPracticeLayout();
             StagePassed?.Invoke(Stage);
         }
 

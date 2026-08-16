@@ -160,6 +160,38 @@ namespace Cube.App.Tests
         }
 
         [UnityTest]
+        public IEnumerator 연습_하단_UI를_누르면_3D터치가_차단된다()
+        {
+            _router.StartPractice(3);
+            yield return null;
+
+            var touch = AppBootstrap.Instance.CubeRoot.GetComponent<TouchController>();
+            var hintButton = _router.Practice.transform.Find("Bar/Bar_힌트") as RectTransform;
+            var hintCard = _router.Practice.transform.Find("Hint") as RectTransform;
+            Assert.IsNotNull(touch);
+            Assert.IsNotNull(hintButton);
+            Assert.IsNotNull(hintCard);
+
+            Canvas.ForceUpdateCanvases();
+
+            Vector2 buttonPoint = RectTransformUtility.WorldToScreenPoint(null,
+                hintButton.TransformPoint(hintButton.rect.center));
+            Vector2 cardPoint = RectTransformUtility.WorldToScreenPoint(null,
+                hintCard.TransformPoint(hintCard.rect.center));
+
+            Assert.IsTrue(touch.IsScreenPositionBlockedByUi(buttonPoint),
+                "힌트 버튼 위에서 큐브 조작이 시작되면 안 된다");
+            Assert.IsFalse(touch.IsScreenPositionBlockedByUi(cardPoint),
+                "버튼이 아닌 힌트 설명 영역까지 큐브 조작을 막으면 안 된다");
+            Assert.IsFalse(touch.IsScreenPositionBlockedByUi(
+                new Vector2(Screen.width * 0.5f, Screen.height * 0.01f)),
+                "버튼이 없는 화면 아래쪽은 큐브 조작이 가능해야 한다");
+            Assert.IsFalse(touch.IsScreenPositionBlockedByUi(
+                new Vector2(Screen.width * 0.5f, Screen.height * 0.5f)),
+                "큐브가 있는 화면 중앙까지 UI 터치로 막으면 안 된다");
+        }
+
+        [UnityTest]
         public IEnumerator 미완료_연습이_있으면_홈에_이어하기로_표시된다()
         {
             _router.StartPractice(3);

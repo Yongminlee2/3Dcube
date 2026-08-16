@@ -37,6 +37,26 @@ namespace Cube.App
             }
         }
 
+        readonly struct StickerArtworkKey : System.IEquatable<StickerArtworkKey>
+        {
+            public readonly int ColorIndex;
+            public readonly int CubieColorMask;
+
+            public StickerArtworkKey(int colorIndex, int cubieColorMask)
+            {
+                ColorIndex = colorIndex;
+                CubieColorMask = cubieColorMask;
+            }
+
+            public bool Equals(StickerArtworkKey other)
+                => ColorIndex == other.ColorIndex && CubieColorMask == other.CubieColorMask;
+
+            public override bool Equals(object obj)
+                => obj is StickerArtworkKey other && Equals(other);
+
+            public override int GetHashCode() => (ColorIndex * 397) ^ CubieColorMask;
+        }
+
         public Vector3 GridToLocal(int x, int y, int z)
         {
             float c = (_n - 1) * 0.5f;
@@ -49,6 +69,49 @@ namespace Cube.App
 
         public MeshRenderer StickerAt(Face face, int row, int col)
             => _stickers[((int)face * _n + row) * _n + col];
+
+        /// 색뿐 아니라 한 면 일러스트의 조각 위치와 상하좌우 방향까지 완성됐는지 본다.
+        /// 일반 색상 스킨과 조각 반복 모드에서는 기존 색 완성 판정과 같다.
+        public bool IsSolvedWithArtwork()
+        {
+            if (State == null || !State.IsSolved()) return false;
+
+            var skin = SkinService.Current;
+            if (SkinService.ArtworkLayout != SkinArtworkLayout.WholeFace
+                || skin == null || skin.StickerTextures == null)
+                return true;
+
+            bool hasDirectionalArtwork = false;
+            for (int f = 0; f < Faces.Count; f++)
+            {
+                if (f >= skin.StickerTextures.Length || skin.StickerTextures[f] == null) continue;
+                hasDirectionalArtwork = true;
+
+                for (int row = 0; row < _n; row++)
+                    for (int col = 0; col < _n; col++)
+                    {
+                        var sticker = StickerAt((Face)f, row, col);
+                        if (sticker == null
+                            || !_artworkPieces.TryGetValue(sticker, out var piece)
+                            || piece.ColorIndex != f || piece.Row != row || piece.Col != col)
+                            return false;
+
+                        var point = CubeCoords.ToPoint((Face)f, row, col, _n);
+                        var expectedForward = new Vector3(point.NX, point.NY, -point.NZ);
+                        var expectedUp = ArtworkUp((Face)f);
+                        var marker = sticker.transform.parent.GetComponent<CubieMarker>();
+                        if (marker == null) return false;
+                        var logicalStickerRotation = marker.Orientation * sticker.transform.localRotation;
+                        var actualForward = logicalStickerRotation * Vector3.forward;
+                        var actualUp = logicalStickerRotation * Vector3.up;
+                        if (Vector3.Dot(actualForward, expectedForward) < 0.999f
+                            || Vector3.Dot(actualUp, expectedUp) < 0.999f)
+                            return false;
+                    }
+            }
+
+            return hasDirectionalArtwork || State.IsSolved();
+        }
 
         public void Build(CubeState state)
         {
@@ -110,7 +173,6 @@ namespace Cube.App
 
         void BuildStickers()
         {
-            var nextPiece = new int[Faces.Count];
             for (int f = 0; f < Faces.Count; f++)
                 for (int row = 0; row < _n; row++)
                     for (int col = 0; col < _n; col++)
@@ -137,23 +199,15 @@ namespace Cube.App
                         // 옆면은 화면 위가 Unity +Y지만, U/D면은 법선과 +Y가 나란해
                         // 기본 LookRotation의 위쪽 기준이 무너진다. CubeCoords 규칙대로
                         // U는 B쪽(Unity +Z), D는 F쪽(Unity -Z)을 그림의 위로 고정한다.
-                        var artworkUp = face == Face.U ? Vector3.forward
-                                      : face == Face.D ? Vector3.back
-                                      : Vector3.up;
+                        var artworkUp = ArtworkUp(face);
                         sticker.transform.localRotation = Quaternion.LookRotation(dir, artworkUp);
                         sticker.transform.localScale = new Vector3(0.9f, 0.9f, 0.02f);
 
                         var stickerRenderer = sticker.GetComponent<MeshRenderer>();
                         _stickers[(f * _n + row) * _n + col] = stickerRenderer;
-
-                        // 그림 조각의 정체성은 현재 위치가 아니라 실제 스티커 오브젝트에 붙인다.
-                        // 그래야 큐브를 돌린 뒤에도 그림의 같은 조각이 큐비와 함께 이동하고,
-                        // 다시 맞췄을 때 한 면짜리 일러스트가 정확히 복원된다.
-                        int colorIndex = State.Get((Face)f, row, col);
-                        int piece = nextPiece[colorIndex]++;
-                        _artworkPieces[stickerRenderer] = new StickerArtworkPiece(
-                            colorIndex, piece / _n, piece % _n);
                     }
+
+            ReassignArtworkPiecesFromState();
         }
 
         /// 상태를 다시 읽어 스티커 색만 갱신한다. 오브젝트는 그대로 둔다.
@@ -169,18 +223,95 @@ namespace Cube.App
         void ReassignArtworkPiecesFromState()
         {
             _artworkPieces.Clear();
-            var nextPiece = new int[Faces.Count];
+
+            // 저장된 섞인 상태를 Build할 때 같은 색 스티커를 단순 발견 순서로
+            // 0..8에 배정하면, 움직이지 않는 센터에도 그림의 모서리 조각이 붙는다.
+            // 큐비가 가진 색 조합은 3x3에서 조각의 고향을 유일하게 알려 준다.
+            // 예: 흰-초록-빨강 조합의 흰 스티커는 언제나 흰 면의 같은 모서리다.
+            // 그 조합으로 원래 그림 좌표를 복구해야 저장 상태에서 시작해도
+            // 색을 다 맞춘 순간 한 면짜리 일러스트까지 정확히 완성된다.
+            var homePieces = BuildHomeArtworkPieces();
+            var cubieColorMasks = new int[_n, _n, _n];
+
+            for (int f = 0; f < Faces.Count; f++)
+                for (int row = 0; row < _n; row++)
+                    for (int col = 0; col < _n; col++)
+                    {
+                        int colorIndex = State.Get((Face)f, row, col);
+                        if (colorIndex < 0 || colorIndex >= Faces.Count) continue;
+                        var p = CubeCoords.ToPoint((Face)f, row, col, _n);
+                        cubieColorMasks[p.X, p.Y, p.Z] |= 1 << colorIndex;
+                    }
+
+            var fallbackPiece = new int[Faces.Count];
             for (int f = 0; f < Faces.Count; f++)
                 for (int row = 0; row < _n; row++)
                     for (int col = 0; col < _n; col++)
                     {
                         var sticker = _stickers[(f * _n + row) * _n + col];
                         int colorIndex = State.Get((Face)f, row, col);
-                        int piece = nextPiece[colorIndex]++;
-                        _artworkPieces[sticker] = new StickerArtworkPiece(
-                            colorIndex, piece / _n, piece % _n);
+                        if (colorIndex < 0 || colorIndex >= Faces.Count) continue;
+
+                        var p = CubeCoords.ToPoint((Face)f, row, col, _n);
+                        var key = new StickerArtworkKey(
+                            colorIndex, cubieColorMasks[p.X, p.Y, p.Z]);
+
+                        StickerArtworkPiece piece;
+                        if (homePieces.TryGetValue(key, out var candidates)
+                            && candidates.Count > 0)
+                        {
+                            piece = candidates.Dequeue();
+                        }
+                        else
+                        {
+                            // 사진 입력 중처럼 아직 유효하지 않은 임시 상태도 화면에는
+                            // 그려야 하므로, 복구할 수 없는 조각만 예전 순서 방식으로 둔다.
+                            int index = fallbackPiece[colorIndex]++;
+                            piece = new StickerArtworkPiece(
+                                colorIndex, index / _n, index % _n);
+                        }
+
+                        _artworkPieces[sticker] = piece;
                     }
         }
+
+        Dictionary<StickerArtworkKey, Queue<StickerArtworkPiece>> BuildHomeArtworkPieces()
+        {
+            var result = new Dictionary<StickerArtworkKey, Queue<StickerArtworkPiece>>();
+            for (int f = 0; f < Faces.Count; f++)
+                for (int row = 0; row < _n; row++)
+                    for (int col = 0; col < _n; col++)
+                    {
+                        var p = CubeCoords.ToPoint((Face)f, row, col, _n);
+                        int mask = SolvedCubieColorMask(p.X, p.Y, p.Z);
+                        var key = new StickerArtworkKey(f, mask);
+                        if (!result.TryGetValue(key, out var pieces))
+                        {
+                            pieces = new Queue<StickerArtworkPiece>();
+                            result.Add(key, pieces);
+                        }
+                        pieces.Enqueue(new StickerArtworkPiece(f, row, col));
+                    }
+            return result;
+        }
+
+        int SolvedCubieColorMask(int x, int y, int z)
+        {
+            int mask = 0;
+            int last = _n - 1;
+            if (y == last) mask |= 1 << (int)Face.U;
+            if (y == 0) mask |= 1 << (int)Face.D;
+            if (z == last) mask |= 1 << (int)Face.F;
+            if (z == 0) mask |= 1 << (int)Face.B;
+            if (x == 0) mask |= 1 << (int)Face.L;
+            if (x == last) mask |= 1 << (int)Face.R;
+            return mask;
+        }
+
+        static Vector3 ArtworkUp(Face face)
+            => face == Face.U ? Vector3.forward
+             : face == Face.D ? Vector3.back
+             : Vector3.up;
 
         /// Core 축을 Unity 회전축으로 옮긴다. GridToLocal의 Z 반전과 짝을 이룬다.
         public static Vector3 UnityAxis(Axis axis)
@@ -227,6 +358,8 @@ namespace Cube.App
             foreach (var (mk, x, y, z) in moved)
             {
                 mk.X = x; mk.Y = y; mk.Z = z;
+                float degrees = m.Turns == 3 ? -90f : 90f * m.Turns;
+                mk.Orientation = Quaternion.AngleAxis(degrees, UnityAxis(m.Axis)) * mk.Orientation;
                 _grid[x, y, z] = mk.transform;
             }
         }
@@ -352,5 +485,6 @@ namespace Cube.App
     public sealed class CubieMarker : MonoBehaviour
     {
         public int X, Y, Z;
+        public Quaternion Orientation = Quaternion.identity;
     }
 }

@@ -7,7 +7,7 @@ namespace Cube.App
     [Serializable]
     public sealed class PracticeProgressSnapshot
     {
-        public int Version = 1;
+        public int Version = 2;
         public int CubeSize;
         public string FaceletsBase64;
         public string Scramble;
@@ -18,6 +18,7 @@ namespace Cube.App
         public int TimerPhase;
         public double TimerElapsedMs;
         public double InspectionRemainingMs;
+        public bool ArtworkPending;
 
         public CubeState ToState() => CubeProgressStore.DecodeState(CubeSize, FaceletsBase64);
     }
@@ -55,7 +56,7 @@ namespace Cube.App
         {
             var snapshot = LoadPractice(cubeSize);
             var state = snapshot?.ToState();
-            return state != null && !state.IsSolved();
+            return state != null && (!state.IsSolved() || snapshot.ArtworkPending);
         }
 
         public static void ClearPractice(int cubeSize)

@@ -51,6 +51,7 @@ namespace Cube.App
         readonly System.Random _rng = new System.Random();
         readonly Queue<Move> _hintPlan = new Queue<Move>();
         bool _hintPlanActive;
+        const int MaxArtworkHintMoves = 12;
 
         public void Build(RectTransform parent, int cubeSize, Action onBack = null)
         {
@@ -78,10 +79,16 @@ namespace Cube.App
                 : new GameObject("CubeRoot").transform;
 
             Renderer = GetOrAdd<CubeRenderer>(cubeRoot.gameObject);
-            Renderer.Build(savedProgress?.ToState() ?? CubeState.Solved(_n));
-
             _rotator = GetOrAdd<LayerRotator>(cubeRoot.gameObject);
-            _rotator.Init(Renderer);
+            _rotator.MoveApplied -= OnMoveApplied;
+
+            var savedState = savedProgress?.ToState();
+            bool restoredPose = TryRestoreGeneratedPose(savedProgress, savedState);
+            if (!restoredPose)
+            {
+                Renderer.Build(savedState ?? CubeState.Solved(_n));
+                _rotator.Init(Renderer);
+            }
             _rotator.MoveApplied += OnMoveApplied;
 
             _orbit = GetOrAdd<OrbitCamera>(cubeRoot.gameObject);
@@ -277,7 +284,7 @@ namespace Cube.App
                 return;
             }
 
-            if (Renderer.State.IsSolved())
+            if (Renderer.IsSolvedWithArtwork())
             {
                 ClearHintPlan();
                 _hint = Hint.Solved;
@@ -302,10 +309,53 @@ namespace Cube.App
         void PrepareHintPlan()
         {
             ClearHintPlan();
+
+            if (TryPrepareArtworkHintPlan()) return;
+
             _hint = HintEngine.Next(Renderer.State);
             if (!_hint.HasMove) return;
 
-            foreach (var move in MoveNotation.Parse(_hint.Notation, _n))
+            EnqueueHintMoves(MoveNotation.Parse(_hint.Notation, _n));
+        }
+
+        bool TryPrepareArtworkHintPlan()
+        {
+            if (_fromRealCube || string.IsNullOrEmpty(CurrentScramble)
+                || SkinService.ArtworkLayout != SkinArtworkLayout.WholeFace)
+                return false;
+
+            var skin = SkinService.Current;
+            if (skin == null || skin.StickerTextures == null
+                || !Array.Exists(skin.StickerTextures, texture => texture != null))
+                return false;
+
+            List<Move> applied;
+            try
+            {
+                applied = new List<Move>(MoveNotation.Parse(CurrentScramble, _n));
+                foreach (var move in _history.Moves) applied.Add(move);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            var reduced = ReduceExactPath(applied);
+            if (reduced.Count == 0) return false;
+
+            var next = new List<Move>();
+            for (int i = reduced.Count - 1; i >= 0 && next.Count < MaxArtworkHintMoves; i--)
+                next.Add(reduced[i].Inverse);
+
+            _hint = new Hint(7, MoveNotation.Format(next, _n),
+                "그림 조각의 위치와 상하좌우 방향까지 정확히 맞추는 수열입니다.");
+            EnqueueHintMoves(next);
+            return _hintPlanActive;
+        }
+
+        void EnqueueHintMoves(IEnumerable<Move> moves)
+        {
+            foreach (var move in moves)
             {
                 // 화면에 2회 버튼이 없으므로 U2 같은 반 바퀴는 같은 버튼 두 번으로 안내한다.
                 if (move.Turns == 2)
@@ -314,13 +364,29 @@ namespace Cube.App
                     _hintPlan.Enqueue(new Move(move.Axis, move.Layer, quarterTurn));
                     _hintPlan.Enqueue(new Move(move.Axis, move.Layer, quarterTurn));
                 }
-                else
-                {
-                    _hintPlan.Enqueue(move);
-                }
+                else _hintPlan.Enqueue(move);
             }
 
             _hintPlanActive = _hintPlan.Count > 0;
+        }
+
+        static List<Move> ReduceExactPath(IEnumerable<Move> moves)
+        {
+            var reduced = new List<Move>();
+            foreach (var move in moves)
+            {
+                int lastIndex = reduced.Count - 1;
+                if (lastIndex >= 0
+                    && reduced[lastIndex].Axis == move.Axis
+                    && reduced[lastIndex].Layer == move.Layer)
+                {
+                    int turns = (reduced[lastIndex].Turns + move.Turns) & 3;
+                    if (turns == 0) reduced.RemoveAt(lastIndex);
+                    else reduced[lastIndex] = new Move(move.Axis, move.Layer, turns);
+                }
+                else reduced.Add(move);
+            }
+            return reduced;
         }
 
         void ShowPlannedSequence()
@@ -559,7 +625,7 @@ namespace Cube.App
 
             _net.Refresh(Renderer.State);
 
-            if (Timer.Phase == TimerPhase.Running && Renderer.State.IsSolved())
+            if (Timer.Phase == TimerPhase.Running && Renderer.IsSolvedWithArtwork())
             {
                 Timer.Stop();
                 Solved?.Invoke(Timer.ElapsedMs, CurrentScramble, _movesSinceScramble);
@@ -651,6 +717,31 @@ namespace Cube.App
             SaveProgress();
         }
 
+        bool TryRestoreGeneratedPose(PracticeProgressSnapshot snapshot, CubeState savedState)
+        {
+            if (snapshot == null || savedState == null || snapshot.FromRealCube
+                || string.IsNullOrEmpty(snapshot.Scramble))
+                return false;
+
+            try
+            {
+                var moves = new List<Move>(MoveNotation.Parse(snapshot.Scramble, _n));
+                if (!string.IsNullOrEmpty(snapshot.HistoryNotation))
+                    moves.AddRange(MoveNotation.Parse(snapshot.HistoryNotation, _n));
+
+                // 그림이 완성된 자세에서 실제 수열을 다시 재생해야 센터를 포함한
+                // 모든 조각의 0/90/180/270도 방향이 저장 전과 똑같이 돌아온다.
+                Renderer.Build(CubeState.Solved(_n));
+                _rotator.Init(Renderer);
+                _rotator.ApplyInstant(moves);
+                return Renderer.State.SameAs(savedState);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
         void RestoreProgress(PracticeProgressSnapshot snapshot)
         {
             if (snapshot == null) return;
@@ -698,7 +789,7 @@ namespace Cube.App
                 || Timer == null || _history == null || _n < 2) return;
 
             // 완성 상태는 이어 할 작업이 아니다. 다음 입장은 새 연습으로 연다.
-            if (Renderer.State.IsSolved())
+            if (Renderer.IsSolvedWithArtwork())
             {
                 CubeProgressStore.ClearPractice(_n);
                 return;
@@ -716,6 +807,7 @@ namespace Cube.App
                 TimerPhase = (int)Timer.Phase,
                 TimerElapsedMs = Timer.ElapsedMs,
                 InspectionRemainingMs = Timer.InspectionRemainingMs,
+                ArtworkPending = Renderer.State.IsSolved() && !Renderer.IsSolvedWithArtwork(),
             });
         }
 

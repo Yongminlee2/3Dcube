@@ -70,6 +70,21 @@ namespace Cube.App.Tests
         }
 
         [Test]
+        public void 안드로이드_하단에는_시스템버튼_안전여백을_둔다()
+        {
+            SafeAreaFitter.CalculateAnchors(new Rect(0f, 0f, 1080f, 2340f),
+                1080, 2340, true, out var min, out var max);
+
+            Assert.AreEqual(SafeAreaFitter.AndroidBottomGuardRatio, min.y, 0.0001f);
+            Assert.AreEqual(1f, max.y, 0.0001f);
+
+            // 운영체제가 더 큰 내비게이션 영역을 알려 주면 그 값을 줄이지 않는다.
+            SafeAreaFitter.CalculateAnchors(new Rect(0f, 180f, 1080f, 2160f),
+                1080, 2340, true, out min, out max);
+            Assert.AreEqual(180f / 2340f, min.y, 0.0001f);
+        }
+
+        [Test]
         public void 설정값은_저장되고_다시_읽힌다()
         {
             AppSettings.CubeSize = 4;

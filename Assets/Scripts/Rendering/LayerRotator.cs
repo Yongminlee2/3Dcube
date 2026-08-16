@@ -165,7 +165,7 @@ namespace Cube.App
                 if (mk == null) continue;
                 if (t.parent != _renderer.transform) t.SetParent(_renderer.transform, false);
                 t.localPosition = _renderer.GridToLocal(mk.X, mk.Y, mk.Z);
-                t.localRotation = SnapToRightAngle(t.localRotation);
+                t.localRotation = mk.Orientation;
             }
         }
 

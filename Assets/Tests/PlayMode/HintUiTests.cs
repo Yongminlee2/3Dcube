@@ -15,6 +15,8 @@ namespace Cube.App.Tests
         GameObject _boot;
         ScreenRouter _router;
         string _path;
+        Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
@@ -28,6 +30,8 @@ namespace Cube.App.Tests
 
             _boot = new GameObject("AppBootstrap");
             _boot.AddComponent<AppBootstrap>();
+            _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
             _router = AppBootstrap.Instance.Router;
             _router.StartPractice(3);
         }
@@ -36,6 +40,8 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             AppSettings.AnimationMs = 120;
+            SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
             AppBootstrap.StorePathOverride = null;
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
@@ -144,6 +150,42 @@ namespace Cube.App.Tests
                 Assert.IsTrue(practice.Renderer.State.IsSolved(),
                     $"seed={seed}: 힌트 {hintGroups}묶음, {applied}동작을 따라도 풀리지 않았다");
             }
+        }
+
+        [UnityTest]
+        public IEnumerator 그림스킨도_힌트만_따라가면_방향까지_완성된다()
+        {
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            var practice = _router.Practice;
+            var notation = practice.transform.Find("Hint/HintNotation").GetComponent<Text>();
+            practice.Scramble();
+            yield return null;
+
+            int groups = 0;
+            int applied = 0;
+            while (!practice.Renderer.IsSolvedWithArtwork() && groups < 20 && applied < 200)
+            {
+                practice.ShowHint();
+                string sequence = notation.text;
+                Assert.IsNotEmpty(sequence, "그림 방향을 풀 힌트가 비었다");
+                foreach (var move in ManualButtonMoves(sequence))
+                {
+                    practice.ApplyMove(move);
+                    applied++;
+                }
+                groups++;
+                yield return null;
+            }
+
+            Assert.IsTrue(practice.Renderer.State.IsSolved());
+            Assert.IsTrue(practice.Renderer.IsSolvedWithArtwork(),
+                $"힌트 {groups}묶음, {applied}동작을 따라도 그림 방향까지 완성되지 않았다");
         }
 
         [UnityTest]

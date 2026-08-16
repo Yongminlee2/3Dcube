@@ -13,6 +13,8 @@ namespace Cube.App.Tests
         GameObject _boot;
         GameObject _root;
         PracticeScreen _screen;
+        Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
@@ -24,6 +26,8 @@ namespace Cube.App.Tests
                 System.IO.Path.Combine(Application.temporaryCachePath, "practice-test.json");
             _boot = new GameObject("AppBootstrap");
             _boot.AddComponent<AppBootstrap>();
+            _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
             _root = new GameObject("Root", typeof(RectTransform), typeof(Canvas));
             _screen = new GameObject("Practice").AddComponent<PracticeScreen>();
             _screen.Build((RectTransform)_root.transform, 3);
@@ -33,6 +37,8 @@ namespace Cube.App.Tests
         public void TearDown()
         {
             AppSettings.AnimationMs = 120;
+            SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
             AppBootstrap.StorePathOverride = null;
             if (_screen != null) Object.DestroyImmediate(_screen.gameObject);
             if (_root != null) Object.DestroyImmediate(_root);
@@ -125,6 +131,35 @@ namespace Cube.App.Tests
 
             Assert.IsTrue(expected.SameAs(_screen.Renderer.State));
             Assert.AreEqual(scramble, _screen.CurrentScramble);
+        }
+
+        [UnityTest]
+        public IEnumerator 그림스킨_스크램블은_재입장후에도_방향까지_풀수있다()
+        {
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            _screen.Scramble();
+            yield return null;
+            string scramble = _screen.CurrentScramble;
+
+            Object.DestroyImmediate(_screen.gameObject);
+            _screen = new GameObject("ArtworkPracticeReloaded").AddComponent<PracticeScreen>();
+            _screen.Build((RectTransform)_root.transform, 3);
+            yield return null;
+
+            var applied = MoveNotation.Parse(scramble, 3);
+            for (int i = applied.Count - 1; i >= 0; i--)
+                _screen.ApplyMove(applied[i].Inverse);
+            yield return null;
+
+            Assert.IsTrue(_screen.Renderer.State.IsSolved());
+            Assert.IsTrue(_screen.Renderer.IsSolvedWithArtwork(),
+                "재입장 뒤 색을 풀었지만 그림 방향이 복원되지 않았다");
         }
 
         [UnityTest]

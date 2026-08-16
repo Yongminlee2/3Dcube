@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using Cube.Core;
 
 namespace Cube.App
@@ -24,6 +26,7 @@ namespace Cube.App
         Vector2 _screenA, _screenB;
 
         Move _move;
+        readonly List<RaycastResult> _uiHits = new List<RaycastResult>();
 
         public void Init(Camera cam, CubeRenderer r, LayerRotator rot, OrbitCamera orbit)
         {
@@ -40,8 +43,19 @@ namespace Cube.App
             // 배경을 끌 자리가 좁고, 그래서 밑면으로 돌리기가 어려웠다.
             if (Input.touchCount >= 2)
             {
+                var first = Input.GetTouch(0);
+                var second = Input.GetTouch(1);
+                // 버튼·힌트·노테이션 패드에서 시작한 손가락은 3D 시점 조절에
+                // 섞지 않는다. 예전에는 두 손가락 경로가 UI 검사를 아예 건너뛰었다.
+                if (IsScreenPositionBlockedByUi(first.position, first.fingerId)
+                    || IsScreenPositionBlockedByUi(second.position, second.fingerId))
+                {
+                    _mode = Mode.Idle;
+                    return;
+                }
+
                 _mode = Mode.TwoFinger;
-                var delta = (Input.GetTouch(0).deltaPosition + Input.GetTouch(1).deltaPosition) * 0.5f;
+                var delta = (first.deltaPosition + second.deltaPosition) * 0.5f;
                 _orbit.Orbit(delta);
                 return;
             }
@@ -60,7 +74,7 @@ namespace Cube.App
 
         void Begin(Vector2 screenPos)
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+            if (IsScreenPositionBlockedByUi(screenPos)) return;
 
             _startPos = _lastPos = screenPos;
 
@@ -81,6 +95,54 @@ namespace Cube.App
 
             PrepareTangents(hit.point);
             _mode = Mode.Undecided;
+        }
+
+        /// Android의 터치는 parameterless IsPointerOverGameObject가 확인하는 마우스
+        /// 포인터(-1)와 ID가 다르다. 화면 좌표로 GraphicRaycaster를 직접 돌려야
+        /// 버튼을 누른 프레임에도 3D 입력을 확실히 차단할 수 있다.
+        public bool IsScreenPositionBlockedByUi(Vector2 screenPos, int pointerId = -1)
+        {
+            var events = EventSystem.current;
+            if (events != null)
+            {
+                var pointer = new PointerEventData(events)
+                {
+                    position = screenPos,
+                    pointerId = pointerId,
+                };
+                _uiHits.Clear();
+                events.RaycastAll(pointer, _uiHits);
+                for (int i = 0; i < _uiHits.Count; i++)
+                {
+                    var hit = _uiHits[i].gameObject;
+                    if (hit != null && (hit.GetComponentInParent<Selectable>() != null
+                                     || hit.GetComponentInParent<ScrollRect>() != null))
+                        return true;
+                }
+            }
+
+            // 배치모드나 Android 입력 모듈의 첫 프레임에는 EventSystem Raycast가
+            // 아직 비어 있을 수 있다. 그때도 실제 버튼 사각형만 직접 검사한다.
+            return IsInsideActiveUiRect<Selectable>(screenPos)
+                || IsInsideActiveUiRect<ScrollRect>(screenPos);
+        }
+
+        static bool IsInsideActiveUiRect<T>(Vector2 screenPos) where T : UIBehaviour
+        {
+            var controls = FindObjectsByType<T>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            for (int i = 0; i < controls.Length; i++)
+            {
+                var control = controls[i];
+                if (control == null || !control.isActiveAndEnabled) continue;
+                if (!(control.transform is RectTransform rect)) continue;
+
+                var canvas = control.GetComponentInParent<Canvas>();
+                Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                    ? canvas.worldCamera : null;
+                if (RectTransformUtility.RectangleContainsScreenPoint(rect, screenPos, eventCamera))
+                    return true;
+            }
+            return false;
         }
 
         void Drag(Vector2 screenPos)
