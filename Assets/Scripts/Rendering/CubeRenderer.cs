@@ -113,6 +113,52 @@ namespace Cube.App
             return hasDirectionalArtwork || State.IsSolved();
         }
 
+        /// <summary>
+        /// 한 면 그림의 센터가 완성 방향에서 시계 방향으로 몇 번(0~3) 돌아갔는지 읽는다.
+        /// 색상 풀이가 끝난 뒤 ArtworkCenterSolver에 넘기는 작은 상태값이다.
+        /// </summary>
+        public bool TryGetArtworkCenterTurns(out int[] turns)
+        {
+            turns = new int[Faces.Count];
+            if (State == null || _n != 3
+                || SkinService.ArtworkLayout != SkinArtworkLayout.WholeFace)
+                return false;
+
+            var skin = SkinService.Current;
+            if (skin == null || skin.StickerTextures == null) return false;
+
+            bool hasArtwork = false;
+            const int center = 1;
+            for (int f = 0; f < Faces.Count; f++)
+            {
+                if (f >= skin.StickerTextures.Length || skin.StickerTextures[f] == null) continue;
+                hasArtwork = true;
+
+                var sticker = StickerAt((Face)f, center, center);
+                var marker = sticker != null
+                    ? sticker.transform.parent.GetComponent<CubieMarker>()
+                    : null;
+                if (marker == null) return false;
+
+                var point = CubeCoords.ToPoint((Face)f, center, center, _n);
+                var forward = new Vector3(point.NX, point.NY, -point.NZ);
+                var expectedUp = ArtworkUp((Face)f);
+                var actualUp = marker.Orientation * sticker.transform.localRotation * Vector3.up;
+
+                int quarterTurns = -1;
+                for (int q = 0; q < 4; q++)
+                {
+                    var candidate = Quaternion.AngleAxis(90f * q, forward) * expectedUp;
+                    if (Vector3.Dot(candidate.normalized, actualUp.normalized) < 0.999f) continue;
+                    quarterTurns = q;
+                    break;
+                }
+                if (quarterTurns < 0) return false;
+                turns[f] = quarterTurns;
+            }
+            return hasArtwork;
+        }
+
         public void Build(CubeState state)
         {
             Clear();

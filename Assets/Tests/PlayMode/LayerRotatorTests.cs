@@ -23,6 +23,11 @@ namespace Cube.App.Tests
             SkinService.Init();
             _originalSkin = SkinService.Current;
             _originalLayout = SkinService.ArtworkLayout;
+            var plain = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures == null
+                     || !System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            SkinService.Apply(plain);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.RepeatPerSticker);
             AppSettings.AnimationMs = 40;
             _go = new GameObject("Cube");
             _renderer = _go.AddComponent<CubeRenderer>();

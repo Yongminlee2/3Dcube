@@ -13,6 +13,8 @@ namespace Cube.App.Tests
         GameObject _boot;
         ScreenRouter _router;
         string _path;
+        Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
@@ -28,6 +30,8 @@ namespace Cube.App.Tests
             AppBootstrap.StorePathOverride = _path;
             _boot = new GameObject("AppBootstrap");
             _boot.AddComponent<AppBootstrap>();
+            _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
             _router = AppBootstrap.Instance.Router;
         }
 
@@ -36,6 +40,8 @@ namespace Cube.App.Tests
         {
             AppSettings.AnimationMs = 120;
             AppSettings.CubeSound = CubeSoundMode.Classic;
+            SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
             AppBootstrap.StorePathOverride = null;
             if (_boot != null) Object.DestroyImmediate(_boot);
             if (File.Exists(_path)) File.Delete(_path);
@@ -105,6 +111,31 @@ namespace Cube.App.Tests
             yield return null;
             Assert.AreEqual(CubeSoundMode.Classic, AppSettings.CubeSound);
             Assert.AreEqual("기본", value.text);
+        }
+
+        [UnityTest]
+        public IEnumerator 이미지스킨을_고르면_그림방향_안내팝업이뜬다()
+        {
+            _router.Go(ScreenId.Skins);
+            yield return null;
+
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+
+            var row = _router.Skins.transform.Find($"SkinList/Viewport/Content/Row_{illustrated.name}")
+                   ?? _router.Skins.transform.Find($"SkinList/Content/Row_{illustrated.name}")
+                   ?? _router.Skins.transform.Find($"SkinList/Row_{illustrated.name}");
+            Assert.IsNotNull(row, "이미지 스킨 선택 행을 찾지 못했다");
+            row.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+
+            var overlay = _router.Skins.transform.Find("ArtworkInfoOverlay");
+            Assert.IsNotNull(overlay);
+            Assert.IsTrue(overlay.gameObject.activeSelf, "이미지 스킨 안내 팝업이 뜨지 않았다");
+            var message = overlay.Find("InfoCard/Message").GetComponent<Text>().text;
+            StringAssert.Contains("그림의 위·아래·좌·우 방향", message);
         }
 
         [UnityTest]

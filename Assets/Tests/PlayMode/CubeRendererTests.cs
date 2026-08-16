@@ -11,17 +11,32 @@ namespace Cube.App.Tests
     {
         GameObject _go;
         CubeRenderer _renderer;
+        Skin _originalSkin;
+        SkinArtworkLayout _originalLayout;
 
         [SetUp]
         public void SetUp()
         {
             ThemeService.Init();
+            SkinService.Init();
+            _originalSkin = SkinService.Current;
+            _originalLayout = SkinService.ArtworkLayout;
+            var plain = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures == null
+                     || !System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            SkinService.Apply(plain);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.RepeatPerSticker);
             _go = new GameObject("Cube");
             _renderer = _go.AddComponent<CubeRenderer>();
         }
 
         [TearDown]
-        public void TearDown() { if (_go != null) Object.DestroyImmediate(_go); }
+        public void TearDown()
+        {
+            SkinService.Apply(_originalSkin);
+            SkinService.SetArtworkLayout(_originalLayout);
+            if (_go != null) Object.DestroyImmediate(_go);
+        }
 
         [UnityTest]
         public IEnumerator 큐비를_N세제곱만큼_만든다()

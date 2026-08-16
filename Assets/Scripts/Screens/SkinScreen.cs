@@ -18,6 +18,7 @@ namespace Cube.App
         Button _repeatButton;
         Button _wholeFaceButton;
         Text _layoutGuide;
+        GameObject _artworkInfoOverlay;
 
         public void Build(RectTransform parent, Action onBack)
         {
@@ -150,7 +151,52 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)footnote.transform,
                 new Vector2(0.06f, 0.065f), new Vector2(0.94f, 0.115f), Vector4.zero);
 
+            BuildArtworkInfoDialog();
             Refresh();
+        }
+
+        void BuildArtworkInfoDialog()
+        {
+            var overlay = UiKit.Panel(transform, "ArtworkInfoOverlay", new Color(0f, 0f, 0f, 0.72f));
+            _artworkInfoOverlay = overlay.gameObject;
+            UiKit.Stretch(overlay, Vector2.zero, Vector2.one, Vector4.zero);
+
+            var dismiss = overlay.gameObject.AddComponent<Button>();
+            dismiss.targetGraphic = overlay.GetComponent<Image>();
+            dismiss.onClick.AddListener(HideArtworkInfo);
+
+            var card = UiKit.Card(overlay, "InfoCard", _p, raised: true);
+            UiKit.Stretch(card,
+                new Vector2(0.075f, 0.355f), new Vector2(0.925f, 0.645f), Vector4.zero);
+            UiKit.AddSoftOutline(card.GetComponent<Image>(), _p.Border, 1f);
+            var blocker = card.gameObject.AddComponent<Button>();
+            blocker.targetGraphic = card.GetComponent<Image>();
+
+            var icon = UiKit.IconPlate(card, "InfoIcon", "palette", _p, _p.Accent);
+            UiKit.Stretch(icon,
+                new Vector2(0.055f, 0.69f), new Vector2(0.17f, 0.91f), Vector4.zero);
+
+            var title = UiKit.Label(card, "Title", "이미지 스킨 안내", 32,
+                _p.TextPrimary, TextAnchor.MiddleLeft);
+            title.fontStyle = FontStyle.Bold;
+            UiKit.Stretch((RectTransform)title.transform,
+                new Vector2(0.20f, 0.68f), new Vector2(0.94f, 0.92f), Vector4.zero);
+
+            var message = UiKit.Label(card, "Message",
+                "‘한 면 전체’에서는 색상을 모두 맞춘 뒤 그림의 위·아래·좌·우 방향을 맞추는 공식이 한 번 더 나옵니다.\n‘조각마다 반복’은 일반 큐브처럼 색상만 맞추면 끝나요.",
+                23, _p.TextSecondary, TextAnchor.UpperLeft);
+            UiKit.Wrap(message);
+            UiKit.Stretch((RectTransform)message.transform,
+                new Vector2(0.055f, 0.31f), new Vector2(0.945f, 0.66f), Vector4.zero);
+
+            var ok = UiKit.Button(card, "Confirm", "확인했어요", _p,
+                HideArtworkInfo, ButtonVariant.Primary);
+            UiKit.Stretch((RectTransform)ok.transform,
+                new Vector2(0.055f, 0.075f), new Vector2(0.945f, 0.265f), Vector4.zero);
+            var okLabel = ok.transform.Find("Label")?.GetComponent<Text>();
+            if (okLabel != null) { okLabel.fontSize = 25; okLabel.fontStyle = FontStyle.Bold; }
+
+            _artworkInfoOverlay.SetActive(false);
         }
 
         void AttachCube()
@@ -178,12 +224,31 @@ namespace Cube.App
         {
             SkinService.Apply(skin);
             Refresh();
+            if (HasArtwork(skin)) ShowArtworkInfo();
         }
 
         void SelectLayout(SkinArtworkLayout layout)
         {
             SkinService.SetArtworkLayout(layout);
             Refresh();
+            if (layout == SkinArtworkLayout.WholeFace && HasArtwork(SkinService.Current))
+                ShowArtworkInfo();
+        }
+
+        static bool HasArtwork(Skin skin)
+            => skin != null && skin.StickerTextures != null
+                && Array.Exists(skin.StickerTextures, texture => texture != null);
+
+        void ShowArtworkInfo()
+        {
+            if (_artworkInfoOverlay == null) return;
+            _artworkInfoOverlay.SetActive(true);
+            _artworkInfoOverlay.transform.SetAsLastSibling();
+        }
+
+        void HideArtworkInfo()
+        {
+            if (_artworkInfoOverlay != null) _artworkInfoOverlay.SetActive(false);
         }
 
         public void Refresh()

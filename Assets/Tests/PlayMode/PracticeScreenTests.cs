@@ -224,5 +224,39 @@ namespace Cube.App.Tests
 
             AppSettings.Inspection = false;
         }
+
+        [UnityTest]
+        public IEnumerator 색상완성후_그림방향이남으면_그림공식_팝업이뜬다()
+        {
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            _screen.ResetCube();
+            var up = _screen.Renderer.CubieAt(1, 2, 1).GetComponent<CubieMarker>();
+            var right = _screen.Renderer.CubieAt(2, 1, 1).GetComponent<CubieMarker>();
+            up.Orientation = Quaternion.AngleAxis(90f, Vector3.up);
+            right.Orientation = Quaternion.AngleAxis(-90f, Vector3.right);
+
+            _screen.ApplyMove(new Move(Axis.X, 0, 1));
+            _screen.ApplyMove(new Move(Axis.X, 0, 3));
+            yield return null;
+
+            var overlay = _screen.transform.Find("ConfirmOverlay").gameObject;
+            var title = overlay.transform.Find("ConfirmCard/Title").GetComponent<Text>();
+            var accept = overlay.transform.Find("ConfirmCard/ConfirmAccept").GetComponent<Button>();
+            Assert.IsTrue(overlay.activeSelf, "색상 완성 뒤 그림 단계 안내가 뜨지 않았다");
+            Assert.AreEqual("색상 큐브 완성!", title.text);
+            Assert.AreEqual("그림 공식 보기",
+                accept.transform.Find("Label").GetComponent<Text>().text);
+
+            accept.onClick.Invoke();
+            yield return null;
+            Assert.IsFalse(overlay.activeSelf);
+            Assert.IsNotEmpty(_screen.transform.Find("Hint/HintNotation").GetComponent<Text>().text);
+        }
     }
 }

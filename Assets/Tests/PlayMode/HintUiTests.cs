@@ -169,7 +169,7 @@ namespace Cube.App.Tests
 
             int groups = 0;
             int applied = 0;
-            while (!practice.Renderer.IsSolvedWithArtwork() && groups < 20 && applied < 200)
+            while (!practice.Renderer.IsSolvedWithArtwork() && groups < 320 && applied < 1400)
             {
                 practice.ShowHint();
                 string sequence = notation.text;
@@ -186,6 +186,100 @@ namespace Cube.App.Tests
             Assert.IsTrue(practice.Renderer.State.IsSolved());
             Assert.IsTrue(practice.Renderer.IsSolvedWithArtwork(),
                 $"힌트 {groups}묶음, {applied}동작을 따라도 그림 방향까지 완성되지 않았다");
+        }
+
+        [UnityTest]
+        public IEnumerator 일반스킨과_그림스킨은_같은상태에서_같은단계공식을_준다()
+        {
+            var plain = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures == null
+                     || !System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(plain);
+            Assert.IsNotNull(illustrated);
+
+            var state = CubeState.Solved(3);
+            state.Apply(MoveNotation.Parse(Scrambler.Generate(3, new System.Random(41)), 3));
+            var practice = _router.Practice;
+            var notation = practice.transform.Find("Hint/HintNotation").GetComponent<Text>();
+
+            SkinService.Apply(plain);
+            practice.LoadState(state.Clone());
+            practice.ShowHint();
+            string plainHint = notation.text;
+
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+            practice.LoadState(state.Clone());
+            practice.ShowHint();
+            string artworkHint = notation.text;
+
+            Assert.AreEqual(plainHint, artworkHint,
+                "같은 큐브 상태인데 스킨에 따라 색상 풀이 공식이 달라졌다");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator 그림스킨에서_백번더돌려도_이력을_되감지않고_현재상태공식을_준다()
+        {
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            var practice = _router.Practice;
+            practice.Scramble();
+            for (int seed = 100; seed < 105; seed++)
+                foreach (var move in MoveNotation.Parse(Scrambler.Generate(3, new System.Random(seed)), 3))
+                    practice.ApplyMove(move);
+
+            Assert.IsFalse(practice.Renderer.State.IsSolved());
+            string expected = HintEngine.SimplifyNotation(
+                HintEngine.Next(practice.Renderer.State).Notation);
+            practice.ShowHint();
+            string actual = practice.transform.Find("Hint/HintNotation").GetComponent<Text>().text;
+
+            Assert.AreEqual(expected, actual,
+                "100번의 이동 이력을 역순으로 보여 주고 현재 상태용 단계 공식을 쓰지 않았다");
+            Assert.Less(MoveNotation.Parse(actual, 3).Count, 100,
+                "첫 힌트가 사용자 이동 이력만큼 길어졌다");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator 색을푼뒤_남은그림센터는_이력없이_전용공식으로_맞춘다()
+        {
+            var illustrated = System.Array.Find(SkinService.All,
+                skin => skin.StickerTextures != null
+                     && System.Array.Exists(skin.StickerTextures, texture => texture != null));
+            Assert.IsNotNull(illustrated);
+            SkinService.Apply(illustrated);
+            SkinService.SetArtworkLayout(SkinArtworkLayout.WholeFace);
+
+            var practice = _router.Practice;
+            practice.ResetCube();
+            var up = practice.Renderer.CubieAt(1, 2, 1).GetComponent<CubieMarker>();
+            var right = practice.Renderer.CubieAt(2, 1, 1).GetComponent<CubieMarker>();
+            up.Orientation = Quaternion.AngleAxis(90f, Vector3.up);
+            right.Orientation = Quaternion.AngleAxis(-90f, Vector3.right);
+
+            Assert.IsTrue(practice.Renderer.State.IsSolved());
+            Assert.IsFalse(practice.Renderer.IsSolvedWithArtwork());
+
+            var notation = practice.transform.Find("Hint/HintNotation").GetComponent<Text>();
+            practice.ShowHint();
+            string sequence = notation.text;
+            Assert.IsNotEmpty(sequence, "그림 센터 방향 공식이 나오지 않았다");
+            foreach (var move in ManualButtonMoves(sequence)) practice.ApplyMove(move);
+            yield return null;
+
+            Assert.IsTrue(practice.Renderer.State.IsSolved(), "센터 공식이 색상 큐브를 흐트러뜨렸다");
+            Assert.IsTrue(practice.Renderer.IsSolvedWithArtwork(),
+                $"센터 공식을 끝까지 수행했지만 그림이 완성되지 않았다: {sequence}");
         }
 
         [UnityTest]

@@ -48,10 +48,10 @@ namespace Cube.App
         bool _suppressHistory;       // 되돌리기가 만든 무브를 기록에서 걸러낸다
         bool _fromRealCube;
         bool _restoringProgress;
+        bool _artworkStageAnnounced;
         readonly System.Random _rng = new System.Random();
         readonly Queue<Move> _hintPlan = new Queue<Move>();
         bool _hintPlanActive;
-        const int MaxArtworkHintMoves = 12;
 
         public void Build(RectTransform parent, int cubeSize, Action onBack = null)
         {
@@ -310,7 +310,9 @@ namespace Cube.App
         {
             ClearHintPlan();
 
-            if (TryPrepareArtworkHintPlan()) return;
+            // 캐릭터 스킨도 일반 스킨과 똑같이 LBL 단계 공식을 사용한다.
+            // 색을 전부 맞춘 뒤에만 그림 센터 방향용 공식을 한 번 덧붙인다.
+            if (Renderer.State.IsSolved() && TryPrepareArtworkCenterHintPlan()) return;
 
             _hint = HintEngine.Next(Renderer.State);
             if (!_hint.HasMove) return;
@@ -318,38 +320,16 @@ namespace Cube.App
             EnqueueHintMoves(MoveNotation.Parse(_hint.Notation, _n));
         }
 
-        bool TryPrepareArtworkHintPlan()
+        bool TryPrepareArtworkCenterHintPlan()
         {
-            if (_fromRealCube || string.IsNullOrEmpty(CurrentScramble)
-                || SkinService.ArtworkLayout != SkinArtworkLayout.WholeFace)
+            if (!Renderer.TryGetArtworkCenterTurns(out var centerTurns)
+                || !ArtworkCenterSolver.TryPlan(centerTurns, out var plan)
+                || plan.Count == 0)
                 return false;
 
-            var skin = SkinService.Current;
-            if (skin == null || skin.StickerTextures == null
-                || !Array.Exists(skin.StickerTextures, texture => texture != null))
-                return false;
-
-            List<Move> applied;
-            try
-            {
-                applied = new List<Move>(MoveNotation.Parse(CurrentScramble, _n));
-                foreach (var move in _history.Moves) applied.Add(move);
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-
-            var reduced = ReduceExactPath(applied);
-            if (reduced.Count == 0) return false;
-
-            var next = new List<Move>();
-            for (int i = reduced.Count - 1; i >= 0 && next.Count < MaxArtworkHintMoves; i--)
-                next.Add(reduced[i].Inverse);
-
-            _hint = new Hint(7, MoveNotation.Format(next, _n),
-                "그림 조각의 위치와 상하좌우 방향까지 정확히 맞추는 수열입니다.");
-            EnqueueHintMoves(next);
+            _hint = new Hint(8, MoveNotation.Format(plan, _n),
+                "색상 풀이는 끝났어요. 마지막으로 그림 가운데 방향만 맞추는 공식입니다.");
+            EnqueueHintMoves(plan);
             return _hintPlanActive;
         }
 
@@ -368,25 +348,6 @@ namespace Cube.App
             }
 
             _hintPlanActive = _hintPlan.Count > 0;
-        }
-
-        static List<Move> ReduceExactPath(IEnumerable<Move> moves)
-        {
-            var reduced = new List<Move>();
-            foreach (var move in moves)
-            {
-                int lastIndex = reduced.Count - 1;
-                if (lastIndex >= 0
-                    && reduced[lastIndex].Axis == move.Axis
-                    && reduced[lastIndex].Layer == move.Layer)
-                {
-                    int turns = (reduced[lastIndex].Turns + move.Turns) & 3;
-                    if (turns == 0) reduced.RemoveAt(lastIndex);
-                    else reduced[lastIndex] = new Move(move.Axis, move.Layer, turns);
-                }
-                else reduced.Add(move);
-            }
-            return reduced;
         }
 
         void ShowPlannedSequence()
@@ -625,13 +586,26 @@ namespace Cube.App
 
             _net.Refresh(Renderer.State);
 
-            if (Timer.Phase == TimerPhase.Running && Renderer.IsSolvedWithArtwork())
+            bool artworkSolved = Renderer.IsSolvedWithArtwork();
+            if (Renderer.State.IsSolved() && !artworkSolved && !_artworkStageAnnounced)
+                ShowArtworkStageNotice();
+
+            if (Timer.Phase == TimerPhase.Running && artworkSolved)
             {
                 Timer.Stop();
                 Solved?.Invoke(Timer.ElapsedMs, CurrentScramble, _movesSinceScramble);
                 AudioService.PlaySuccess();
             }
             SaveProgress();
+        }
+
+        void ShowArtworkStageNotice()
+        {
+            _artworkStageAnnounced = true;
+            ClearHintPlan();
+            ShowConfirmation("색상 큐브 완성!",
+                "색상은 모두 맞았어요. 이미지 스킨은 그림의 위·아래·좌·우 방향까지 맞춰야 최종 완성입니다.",
+                "그림 공식 보기", ShowHint, danger: false);
         }
 
         public void Scramble()
@@ -685,6 +659,7 @@ namespace Cube.App
             _movesSinceScramble = 0;
             _armed = false;
             _fromRealCube = true;
+            _artworkStageAnnounced = false;
             Timer.Reset();
             if (_scrambleLabel != null)
                 _scrambleLabel.text = "촬영한 실물 큐브를 이어서 풀고 있어요";
@@ -707,6 +682,7 @@ namespace Cube.App
                 _scrambleLabel.text = "섞기 버튼으로 시작 · 두 손가락으로 시점 조절";
             _armed = false;
             _fromRealCube = false;
+            _artworkStageAnnounced = false;
             Timer.Reset();
 
             // 큐브가 바뀌면 들고 있던 힌트는 더 이상 맞지 않는다.
@@ -781,6 +757,10 @@ namespace Cube.App
             {
                 _restoringProgress = false;
             }
+
+            if (snapshot.ArtworkPending && Renderer.State.IsSolved()
+                && !Renderer.IsSolvedWithArtwork())
+                ShowArtworkStageNotice();
         }
 
         public void SaveProgress()
