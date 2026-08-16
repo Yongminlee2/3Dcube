@@ -24,6 +24,14 @@ namespace Cube.App
         const string KeyBackgroundMusic = "cube.backgroundMusic";
         const string KeySoundEffects = "cube.soundEffects";
         const string KeyCubeSoundMode = "cube.cubeSoundMode";
+        const string KeyLanguage = "cube.language";
+
+        /// 빈 문자열이면 기기 언어를 따른다. 값은 BCP-47 로케일 코드다.
+        public static string LanguageCode
+        {
+            get => PlayerPrefs.GetString(KeyLanguage, "");
+            set { PlayerPrefs.SetString(KeyLanguage, value ?? ""); PlayerPrefs.Save(); }
+        }
 
         public static bool DarkTheme
         {

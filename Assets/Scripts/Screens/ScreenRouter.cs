@@ -69,15 +69,27 @@ namespace Cube.App
 
             ThemeService.Changed -= OnThemeChanged;
             ThemeService.Changed += OnThemeChanged;
+            LocalizationService.Changed -= OnLanguageChanged;
+            LocalizationService.Changed += OnLanguageChanged;
         }
 
-        void OnDestroy() { ThemeService.Changed -= OnThemeChanged; }
+        void OnDestroy()
+        {
+            ThemeService.Changed -= OnThemeChanged;
+            LocalizationService.Changed -= OnLanguageChanged;
+        }
 
         /// 테마가 바뀌면 화면을 다시 짓는다.
         ///
         /// 색은 만들 때 한 번 박히므로, 팔레트만 갈아 끼우면 배경만 밝아지고
         /// 버튼은 어두운 채로 남아 글자가 보이지 않는다. 실기기에서 그랬다.
         void OnThemeChanged(Palette p)
+            => RebuildUi(true);
+
+        void OnLanguageChanged()
+            => RebuildUi(false);
+
+        void RebuildUi(bool themeChange)
         {
             if (_canvasRect == null) return;
 
@@ -96,7 +108,9 @@ namespace Cube.App
 
             // 연습·단계 화면의 진행 상태는 저장했지만, 설정에서 테마를 바꾸는
             // 흐름이므로 설정 화면에 남겨 갑작스러운 복원 전환을 피한다.
-            Go(wasOn == ScreenId.Practice || wasOn == ScreenId.Lesson ? ScreenId.Settings : wasOn);
+            Go(themeChange && (wasOn == ScreenId.Practice || wasOn == ScreenId.Lesson)
+                ? ScreenId.Settings
+                : wasOn);
         }
 
         /// 학습 홈에서 단계를 고르면 부른다.

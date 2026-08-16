@@ -19,6 +19,7 @@ namespace Cube.App
         void Awake()
         {
             Instance = this;
+            LocalizationService.Init();
             ThemeService.Init();
             SkinService.Init();
 

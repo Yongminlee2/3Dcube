@@ -144,13 +144,14 @@ namespace Cube.App
             go.transform.SetParent(parent, false);
             var t = go.GetComponent<Text>();
             t.font = DefaultFont;
-            t.text = text;
             t.fontSize = size;
             t.color = color;
             t.alignment = anchor;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.verticalOverflow = VerticalWrapMode.Overflow;
             t.raycastTarget = false;
+            var localized = go.AddComponent<LocalizedText>();
+            localized.Bind(text);
             return t;
         }
 
