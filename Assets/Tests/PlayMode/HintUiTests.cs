@@ -365,7 +365,11 @@ namespace Cube.App.Tests
             var explanation = root.Find("Hint/HintExplanation")?.GetComponent<Text>();
             Assert.NotNull(label);
             Assert.NotNull(explanation);
-            Assert.GreaterOrEqual(label.fontSize, 20);
+            // 자동 축소가 켜져 있으면 fontSize는 무시되고 이 상한이 실제 크기가 된다.
+            Assert.IsTrue(label.resizeTextForBestFit);
+            Assert.GreaterOrEqual(label.resizeTextMaxSize, 20);
+            Assert.LessOrEqual(label.resizeTextMaxSize, 28,
+                "아이콘 옆에서 글자만 커 보인다");
             Assert.GreaterOrEqual(explanation.resizeTextMaxSize, 23);
 
             // 아이콘 칸이 글자 칸보다 좁으면, 굵은 글자 옆에서 아이콘만 작아 보인다.

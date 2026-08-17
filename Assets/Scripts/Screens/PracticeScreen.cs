@@ -431,12 +431,15 @@ namespace Cube.App
             btn.image.sprite = UiKit.RoundedTight;
 
             var text = btn.transform.Find("Label").GetComponent<Text>();
-            // 아이콘을 키운 뒤로는 24가 커 보인다. 다른 화면 버튼 글자와 비슷하게 낮춘다.
-            text.fontSize = 21;
+            // 자동 축소가 켜져 있으면 fontSize는 무시되고 상한값이 실제 크기를
+            // 정한다. 기본 상한(30)으로는 아이콘 옆에서 글자만 커 보여서 낮춘다.
+            UiKit.Fit(text, 14, 28);
             text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.LowerCenter;
+            // 글자는 자기 칸의 위쪽에 붙인다. 아래쪽(LowerCenter)에 두면
+            // 칸 윗부분이 통째로 비어 아이콘과 글자 사이가 벌어져 보였다.
+            text.alignment = TextAnchor.UpperCenter;
             UiKit.Stretch((RectTransform)text.transform,
-                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.42f), Vector4.zero);
+                new Vector2(0.04f, 0.03f), new Vector2(0.96f, 0.43f), Vector4.zero);
 
             Color color = danger
                 ? new Color(1f, 0.34f, 0.38f, 1f)
@@ -446,8 +449,9 @@ namespace Cube.App
             // 아이콘 그림(96px)은 실제 선이 54px뿐이고 나머지는 투명 여백이라,
             // 칸을 글자 칸보다 크게 잡아야 굵은 글자와 크기가 맞아 보인다.
             // 예전에는 세로 38%밖에 못 받아서 아이콘만 가늘고 작았다.
+            // 아래끝을 글자 칸 윗변에 맞춰, 그림 여백만큼만 사이가 뜨게 한다.
             UiKit.Stretch((RectTransform)icon.transform,
-                new Vector2(0.30f, 0.44f), new Vector2(0.70f, 1f), Vector4.zero);
+                new Vector2(0.30f, 0.40f), new Vector2(0.70f, 0.96f), Vector4.zero);
 
             if (index > 0)
             {
