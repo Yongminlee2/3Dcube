@@ -34,6 +34,14 @@ namespace CubeEditor
 
             EditorUserBuildSettings.buildAppBundle = release;
 
+            // 네이티브 기호를 같이 뽑는다. IL2CPP가 만든 .so에서 터지면 콘솔에는
+            // 주소만 찍혀 어디서 죽었는지 알 수 없다. 이 파일을 올려 두면 함수
+            // 이름까지 보인다. Public은 함수 이름만 담아 Debugging보다 훨씬 작고,
+            // 크래시를 읽는 데는 그것으로 충분하다.
+            // 결과물: Build/ 안에 <이름>-<버전>.symbols.zip
+            EditorUserBuildSettings.androidCreateSymbols =
+                release ? AndroidCreateSymbols.Public : AndroidCreateSymbols.Disabled;
+
             if (release)
             {
                 if (!ApplySigning())
