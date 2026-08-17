@@ -201,8 +201,9 @@ namespace Cube.App
 
             _clearWarning.SetActive(_clearArmed);
             if (_clearArmed)
-                _clearWarningText.text =
-                    $"삭제 준비됨 · 한 번 더 누르면 {cubeSize}×{cubeSize} 기록 {records.Count}개를 모두 지워요.";
+                _clearWarningText.text = LocalizationService.F(
+                    "삭제 준비됨 · 한 번 더 누르면 {0}×{1} 기록 {2}개를 모두 지워요.",
+                    cubeSize, cubeSize, records.Count);
 
             UiKit.StyleButton(_clear, _p,
                 _clearArmed ? ButtonVariant.Danger : ButtonVariant.Secondary);

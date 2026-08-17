@@ -603,8 +603,12 @@ namespace Cube.App
             {
                 _centerMismatchArmed = true;
                 _scanStatusTitle.text = "중심색 확인이 필요해요";
-                _scanStatusBody.text = $"카메라는 {PhysicalColorNames[(int)detectedFace]}으로 읽었지만 오인식일 수 있어요. "
-                    + $"실제로 {PhysicalColorNames[(int)expectedFace]}이 맞다면 버튼을 한 번 더 누르세요.";
+                // 문장을 통째로 카탈로그 키로 쓴다. 색 이름은 따로 번역해 끼워 넣는다 —
+                // 조사가 붙어 있어 한국어 문장을 그대로 조립하면 다른 언어에서 찾을 수 없다.
+                _scanStatusBody.text = LocalizationService.F(
+                    "카메라는 {0}으로 읽었지만 오인식일 수 있어요. 실제로 {1}이 맞다면 버튼을 한 번 더 누르세요.",
+                    LocalizationService.T(PhysicalColorNames[(int)detectedFace]),
+                    LocalizationService.T(PhysicalColorNames[(int)expectedFace]));
                 _scanStatusTitle.color = _p.Warning;
                 _scanStatusIcon.color = _p.Warning;
                 _primaryScanLabel.text = "그래도 이 면으로 저장";
@@ -817,7 +821,9 @@ namespace Cube.App
 
         void ShowStatusError(string reason)
         {
-            _editStatus.text = $"이대로는 맞출 수 없습니다.\n{reason}";
+            // 사유(reason)는 CubeValidator가 한국어로 만들어 주므로 따로 번역해 붙인다.
+            _editStatus.text = LocalizationService.T("이대로는 맞출 수 없습니다.")
+                + "\n" + LocalizationService.T(reason);
             _editStatus.gameObject.SetActive(true);
             _editStatusHint.gameObject.SetActive(false);
             _editStatusIcon.color = _p.Warning;

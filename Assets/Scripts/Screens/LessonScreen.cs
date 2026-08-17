@@ -444,8 +444,10 @@ namespace Cube.App
                 return;
             }
 
-            SetStatus($"직접 조작 · {hint.Notation}\n"
-                      + $"첫 동작: {MoveNotation.DescribeFirst(hint.Notation)} · {hint.Reason}");
+            SetStatus(LocalizationService.F("직접 조작 · {0}\n첫 동작: {1} · {2}",
+                hint.Notation,
+                LocalizationService.T(MoveNotation.DescribeFirst(hint.Notation)),
+                LocalizationService.T(hint.Reason)));
         }
 
         string LessonOverviewHint()

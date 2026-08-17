@@ -93,12 +93,21 @@ namespace Cube.App.Tests
             }
         }
 
+        /// 예전에는 이 문장이 영어 폴백으로 떨어졌다. 일본어를 골랐는데 영어가 나오는 게
+        /// 어색하다는 의견이 있어 코치 설명문을 14개 언어 전부 카탈로그에 넣었다.
+        /// 이제는 고른 언어 그대로 나와야 한다.
         [Test]
-        public void DetailedCoachCopyFallsBackToEnglish()
+        public void DetailedCoachCopyIsTranslatedNotLeftInEnglish()
         {
+            const string source = "큐브를 흰 면이 아래로 가게 잡습니다. 앞으로 이 방향을 계속 유지합니다.";
+
             LocalizationService.SetLanguage("ja");
-            Assert.AreEqual("Hold the cube with white on the bottom and keep this orientation.",
-                LocalizationService.T("큐브를 흰 면이 아래로 가게 잡습니다. 앞으로 이 방향을 계속 유지합니다."));
+            Assert.AreEqual("白い面を下にして持ちます。これ以降もこの向きを保ちます。",
+                LocalizationService.T(source));
+
+            LocalizationService.SetLanguage("de");
+            Assert.AreEqual("Halte den Würfel mit der weißen Seite nach unten und behalte das bei.",
+                LocalizationService.T(source));
         }
 
         [UnityTest]
