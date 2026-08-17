@@ -175,6 +175,7 @@ namespace Cube.App
             text.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
+
         public static Image Icon(Transform parent, string name, string resourceName, Color tint)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -335,10 +336,18 @@ namespace Cube.App
             img.type = Image.Type.Sliced;
 
             var text = Label(go.transform, "Label", label, UiMetrics.Button, p.TextPrimary);
+
+            // 줄바꿈을 허용해야 자동 축소가 가로 폭까지 본다.
+            //
+            // Overflow로 두면 유니티는 세로만 맞추고 가로는 넘치도록 내버려 둔다.
+            // 그래서 자동 축소를 켜 두었는데도 "반시계"가 영어 "Counterclockwise"로
+            // 바뀌자 버튼을 뚫고 화면 밖까지 나갔다. Wrap이면 두 줄로 내려가고,
+            // 두 줄로도 모자라면 그때 글자가 줄어든다.
+            Wrap(text);
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 18;
+            text.resizeTextMinSize = 14;
             text.resizeTextMaxSize = UiMetrics.Button;
-            Stretch((RectTransform)text.transform, Vector2.zero, Vector2.one, Vector4.zero);
+            Stretch((RectTransform)text.transform, Vector2.zero, Vector2.one, new Vector4(6, 2, 6, 2));
 
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = img;

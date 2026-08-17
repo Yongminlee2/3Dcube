@@ -455,8 +455,10 @@ namespace Cube.App
             if (_lesson.Algorithms.Length == 0)
                 return "흰색이 들어간 두 색 조각을 찾으세요. 흰색을 아래로 보내고, 옆 색은 같은 색 센터에 맞춥니다. 연습하기를 누르면 현재 상태의 조작도 알려드려요.";
 
+            // 공식 이름과 사용 시점은 LessonData가 한국어로 들고 있으므로 따로 번역한다.
             var alg = _lesson.Algorithms[0];
-            return $"{alg.Name} · {alg.Notation}\n{alg.When} · 연습 중에는 현재 상태에 맞는 조작을 알려드려요.";
+            return LocalizationService.F("{0} · {1}\n{2} · 연습 중에는 현재 상태에 맞는 조작을 알려드려요.",
+                LocalizationService.T(alg.Name), alg.Notation, LocalizationService.T(alg.When));
         }
 
         void PlayAlgorithm(Algorithm alg)

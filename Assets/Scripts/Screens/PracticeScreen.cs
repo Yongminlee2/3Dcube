@@ -354,8 +354,12 @@ namespace Cube.App
         {
             if (_hintPlan.Count == 0) return;
             string notation = HintEngine.SimplifyNotation(MoveNotation.Format(_hintPlan, _n));
-            SetHint(notation, $"왼쪽부터 순서대로 끝까지 실행하세요 · {_hint.Reason}\n"
-                + "중간에 흐트러져 보여도 이 수식을 끝까지 계속하면 됩니다.");
+            // 한국어 문장을 조립해 두면 다른 언어에서 통째로 찾을 수 없다.
+            // 조각마다 번역해 붙인다 — 사유(Reason)는 HintEngine이 만들어 준다.
+            SetHint(notation,
+                LocalizationService.F("왼쪽부터 순서대로 끝까지 실행하세요 · {0}",
+                    LocalizationService.T(_hint.Reason))
+                + "\n" + LocalizationService.T("중간에 흐트러져 보여도 이 수식을 끝까지 계속하면 됩니다."));
         }
 
         void AdvanceHintPlan(Move applied)

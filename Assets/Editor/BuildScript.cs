@@ -34,12 +34,25 @@ namespace CubeEditor
 
             EditorUserBuildSettings.buildAppBundle = release;
 
-            if (release && !ApplySigning())
+            if (release)
             {
-                Debug.LogError("[BuildScript] 서명 설정을 읽지 못해 중단한다. "
-                             + "디버그 키로 서명된 것을 스토어에 올리면 거부된다.");
-                EditorApplication.Exit(1);
-                return;
+                if (!ApplySigning())
+                {
+                    Debug.LogError("[BuildScript] 서명 설정을 읽지 못해 중단한다. "
+                                 + "디버그 키로 서명된 것을 스토어에 올리면 거부된다.");
+                    EditorApplication.Exit(1);
+                    return;
+                }
+            }
+            else
+            {
+                // 릴리스 빌드가 켜 둔 설정을 되돌린다.
+                //
+                // useCustomKeystore는 ProjectSettings에 저장되지만 비밀번호는
+                // 저장되지 않는다(그래야 저장소에 새지 않는다). 그래서 AAB를 한 번
+                // 만들고 나면 다음 APK 빌드가 "Unable to sign the application;
+                // please provide passwords!"로 즉시 죽는다.
+                PlayerSettings.Android.useCustomKeystore = false;
             }
 
             var options = new BuildPlayerOptions
