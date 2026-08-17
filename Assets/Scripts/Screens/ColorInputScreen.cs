@@ -169,8 +169,10 @@ namespace Cube.App
             UiKit.Stretch(guide,
                 new Vector2(0.055f, 0.885f), new Vector2(0.945f, 0.952f), Vector4.zero);
 
+            // 이 말머리만 아래에 색 칩이 없으므로, 옆 칸들처럼 위아래로 나누지 않고
+            // 줄 한가운데에 그대로 둔다.
             var caption = UiKit.Label(guide, "Caption", "색 기준", 17,
-                _p.TextSecondary, TextAnchor.MiddleLeft);
+                _p.TextSecondary, TextAnchor.MiddleCenter);
             caption.fontStyle = FontStyle.Bold;
             UiKit.Fit(caption, 11, 17);
             UiKit.Stretch((RectTransform)caption.transform,
