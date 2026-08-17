@@ -282,8 +282,10 @@ TEMP="C:/workAndroid/tmp-ascii" TMP="C:/workAndroid/tmp-ascii" GRADLE_USER_HOME=
 | [`docs/superpowers/plans/`](docs/superpowers/plans/) | 구현 계획 (어떤 순서로) |
 | [`docs/device-checklist.md`](docs/device-checklist.md) | 실기기 확인 목록 |
 | [`docs/ascii-path-trap.md`](docs/ascii-path-trap.md) | 한글 경로 빌드 함정 |
-| [`docs/store-listing.md`](docs/store-listing.md) | 스토어 등록 문안 |
+| [`docs/store-listing.md`](docs/store-listing.md) | 스토어 등록 문안 (한국어 원본) |
+| [`docs/store-listing-i18n.md`](docs/store-listing-i18n.md) | 스토어 등록 문안 14개 언어 |
 | [`docs/privacy-policy.md`](docs/privacy-policy.md) | 개인정보처리방침 |
+| [`docs/privacy-policy-en.md`](docs/privacy-policy-en.md) | 개인정보처리방침 영어판 |
 | [`docs/skin-brief-for-codex.md`](docs/skin-brief-for-codex.md) | 이미지 텍스처 스킨 발주 스펙 |
 
 ### 밖에서 가져온 것
@@ -324,9 +326,14 @@ MIT는 **배포물에 저작권 문구를 함께 넣을 것**을 요구한다. �
 
 ## 10. 남은 일
 
-- 스토어용 스크린샷 촬영
+- **스토어용 스크린샷 촬영** — 언어별로 찍어 두면 좋지만, 최소한 영어판은 있어야 한다
 - 릴리스 서명
-- 스토어 등록과 심사 — 설명란에 Tabler Icons 오픈소스 고지를 넣을 것 (8절 참고)
+- 스토어 등록과 심사
+  - 언어별 등록 정보를 14개 다 넣을 것. [`docs/store-listing-i18n.md`](docs/store-listing-i18n.md)에서 복사한다. 넣지 않으면 그 나라 사용자에게 한국어 설명이 그대로 보인다
+  - 설명란 맨 아래에 Tabler Icons 오픈소스 고지를 넣을 것 (8절 참고)
+  - 개인정보처리방침을 공개 주소에 올리고 콘솔에 넣을 것. 영어판은 [`docs/privacy-policy-en.md`](docs/privacy-policy-en.md)
+  - **데이터 보안 신고에서 카메라를 어떻게 답할지** — 권한은 쓰지만 이미지를 저장·전송하지 않으므로 "사진/동영상 수집"에는 체크하지 않는다 (근거는 방침 3절)
+- **번역 검수** — 문법과 용어는 맞췄지만 태국어·베트남어·인도네시아어는 원어민이 읽었을 때 어색한지 판단하지 못했다. 봐줄 사람이 있으면 출시 전에 한 번 받는 편이 좋다
 - iOS 이식 (Mac 필요. 플랫폼 종속 코드는 격리해 뒀지만 검증은 못 했다)
 - 이미지 텍스처 스킨 나머지 7종 (대리석·메탈·은하수 등) — [`docs/skin-brief-for-codex.md`](docs/skin-brief-for-codex.md) 스펙대로 도착하면 `SkinImporter`로 붙인다
 - **갤럭시 S20 울트라(1440×3200)에서 화면 확인** — 지금까지 눈으로 본 것은 전부 A16(1080×2340)이다. 세로가 짧은 기기에서만 글자가 겹쳤던 전례가 있어 해상도가 다른 기기는 한 번 봐야 한다

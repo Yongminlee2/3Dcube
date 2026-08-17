@@ -10,6 +10,11 @@
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
+# 안드로이드 빌드가 쓰는 임시 폴더(CMake·ninja 캐시).
+# 빌드할 때마다 유니티가 새로 만들므로 저장소에 둘 이유가 없다.
+# 들어 있으면 빌드만 해도 파일 수십 개가 변경으로 잡힌다.
+/.utmp/
+
 # Asset meta data for ignored folders
 !/[Aa]ssets/**/*.meta
 
