@@ -76,6 +76,17 @@ namespace CubeEditor
             var s = report.summary;
             Debug.Log($"[BuildScript] {s.result} / {outputPath} / {s.totalSize} bytes / {s.totalTime}");
 
+            if (release)
+            {
+                // 서명 스위치를 도로 내려 ProjectSettings를 건드리지 않은 상태로 남긴다.
+                //
+                // 이걸 켜 둔 채 끝내면 릴리스 빌드를 할 때마다 ProjectSettings.asset이
+                // 수정된 것으로 남는다. 그러면 되돌리려고 checkout을 하다가 같은 파일에
+                // 들어 있는 버전 코드까지 함께 날리게 된다 — 실제로 한 번 그랬다.
+                PlayerSettings.Android.useCustomKeystore = false;
+                AssetDatabase.SaveAssets();
+            }
+
             if (s.result != BuildResult.Succeeded) EditorApplication.Exit(1);
         }
 
