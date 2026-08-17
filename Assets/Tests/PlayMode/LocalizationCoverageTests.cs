@@ -212,6 +212,25 @@ namespace Cube.App.Tests
             Assert.IsEmpty(bad.ToString(), "번역 칸이 비었거나 한국어가 남아 있다:\n" + bad);
         }
 
+        /// 영어 폴백은 안전망이지 번역이 아니다.
+        ///
+        /// 영어 폴백 표에만 있는 문장은 러시아어를 골라도 영어가 그대로 나온다.
+        /// 한글이 남지 않으니 다른 검사는 전부 통과하고, 눈으로 봐도 "번역된 것"처럼
+        /// 보여서 놓치기 쉽다. 실제로 전개도의 "펴기"가 독일어에서 Expand로 떴다.
+        /// 그래서 폴백에 있는 것은 카탈로그에도 반드시 있어야 한다고 못 박는다.
+        [Test]
+        public void 영어_폴백에만_있는_문장이_없다()
+        {
+            var catalog = new HashSet<string>(LocalizationService.CatalogKeysForTests);
+            var leaked = new List<string>();
+            foreach (string key in LocalizationService.EnglishFallbackKeysForTests)
+                if (!catalog.Contains(key)) leaked.Add(key);
+
+            Assert.IsEmpty(leaked,
+                "이 문장들은 한국어·영어가 아닌 언어에서 영어로 나온다. "
+                + "카탈로그에 14개 언어를 채울 것:\n  " + string.Join("\n  ", leaked));
+        }
+
         [Test]
         public void 언어를_바꾸면_실제로_그_언어가_나온다()
         {
