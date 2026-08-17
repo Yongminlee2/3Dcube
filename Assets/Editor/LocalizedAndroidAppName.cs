@@ -15,6 +15,10 @@ namespace CubeEditor
         static readonly IReadOnlyDictionary<string, string> Names =
             new Dictionary<string, string>
             {
+                // 접미사 없는 values가 기본값이다. 여기를 채우지 않으면 유니티의
+                // productName(한국어)이 그대로 남아, 지원하지 않는 언어를 쓰는
+                // 폰에서 한글 이름이 뜬다. 세계 출시이므로 영어를 기본으로 둔다.
+                ["values"] = "3D Cube",
                 ["values-ko"] = "3D 큐브",
                 ["values-en"] = "3D Cube",
                 ["values-ja"] = "3Dキューブ",
