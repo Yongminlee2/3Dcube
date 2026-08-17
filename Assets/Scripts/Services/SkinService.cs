@@ -29,7 +29,10 @@ namespace Cube.App
         {
             if (_all == null || _all.Length == 0)
             {
+                // Hidden인 것은 아예 걸러 낸다. 파일은 남아 있지만 목록에도 없고
+                // 고를 수도 없다 — 되살리려면 에셋의 Hidden만 끄면 된다.
                 _all = Resources.LoadAll<Skin>("Skins")
+                    .Where(s => !s.Hidden)
                     .OrderBy(s => s.CharacterArtwork ? 1 : 0)
                     .ThenBy(s => s.name)
                     .ToArray();
@@ -38,6 +41,8 @@ namespace Cube.App
                         "Assets/Resources/Skins에 스킨 에셋이 없다. ProjectSetup.CreateAssets를 돌릴 것");
             }
             if (_current == null)
+                // 감춘 스킨을 이미 고른 채로 업데이트를 받았다면 기본 스킨으로 돌린다.
+                // 그러지 않으면 목록에 없는 스킨이 계속 큐브에 입혀진 채로 남는다.
                 _current = _all.FirstOrDefault(s => s.name == AppSettings.SkinName)
                         ?? _all.FirstOrDefault(s => s.name == DefaultName)
                         ?? _all[0];

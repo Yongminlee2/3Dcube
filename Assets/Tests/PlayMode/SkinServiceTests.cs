@@ -37,10 +37,26 @@ namespace Cube.App.Tests
             s.StickerTextures != null && System.Array.Exists(s.StickerTextures, t => t != null);
 
         [Test]
-        public void 열_종류의_스킨이_모두_있다()
+        public void 감추지_않은_스킨만_목록에_나온다()
         {
-            // 색만 있는 5종 + 우드 + 캐릭터 스킨 4종.
-            Assert.AreEqual(10, SkinService.All.Length);
+            // 색만 있는 5종 + 우드 + 캐릭터 스킨 2종.
+            // 수영복 일러스트 2종(여름 바캉스·문라이트 리조트)은 감춰 두었다.
+            Assert.AreEqual(8, SkinService.All.Length);
+        }
+
+        /// 감춘 스킨이 목록으로 새어 나오지 않는지 확인한다.
+        /// 파일은 남아 있으므로 Resources에서 직접 읽으면 여전히 나온다 —
+        /// 걸러 내는 쪽이 동작하는지가 핵심이다.
+        [Test]
+        public void 감춘_스킨은_고를_수_없다()
+        {
+            var hiddenOnDisk = System.Array.FindAll(
+                Resources.LoadAll<Skin>("Skins"), s => s.Hidden);
+            Assert.IsNotEmpty(hiddenOnDisk, "감춘 스킨이 하나도 없다 — 설정이 풀렸는지 확인할 것");
+
+            foreach (var hidden in hiddenOnDisk)
+                Assert.IsFalse(System.Array.Exists(SkinService.All, s => s == hidden),
+                    $"감춘 스킨이 목록에 나온다: {hidden.name}");
         }
 
         [TestCase("Skin_Starlight")]
@@ -49,8 +65,11 @@ namespace Cube.App.Tests
         [TestCase("Skin_MoonlightResort")]
         public void 그림_스킨은_여섯_면이_모두_서로_다른_그림이다(string skinName)
         {
-            var illustrated = System.Array.Find(SkinService.All, s => s.name == skinName);
-            Assert.IsNotNull(illustrated);
+            // 감춘 스킨도 파일은 남아 있으므로 Resources에서 직접 읽는다.
+            // 나중에 되살릴 때 깨져 있지 않도록 계속 검사해 둔다.
+            var illustrated = System.Array.Find(
+                Resources.LoadAll<Skin>("Skins"), s => s.name == skinName);
+            Assert.IsNotNull(illustrated, $"{skinName} 에셋을 찾지 못했다");
             Assert.AreEqual(6, illustrated.StickerTextures.Length);
 
             for (int i = 0; i < illustrated.StickerTextures.Length; i++)

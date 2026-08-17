@@ -15,6 +15,7 @@ MonoBehaviour:
   DisplayName: "\uBB38\uB77C\uC774\uD2B8 \uB9AC\uC870\uD2B8"
   CubeBody: {r: 0.03137255, g: 0.043137256, b: 0.09411765, a: 1}
   CharacterArtwork: 1
+  Hidden: 1
   StickerColors:
   - {r: 0.47058824, g: 0.23921569, b: 0.65882355, a: 1}
   - {r: 0.21176471, g: 0.7490196, b: 0.8156863, a: 1}
