@@ -250,6 +250,7 @@ namespace Cube.App
             if (id == ScreenId.Learn) Learn.Refresh();   // 진도가 바뀌었을 수 있다
             if (id == ScreenId.Library) Library.ResetCube();
             if (id == ScreenId.Skins) Skins.Refresh();
+            LocalizationService.RefreshAll(_screenRoot);
         }
 
         void Update()

@@ -38,7 +38,20 @@ namespace Cube.App
         static readonly Dictionary<int, Sprite> RoundedSprites = new Dictionary<int, Sprite>();
         static readonly Dictionary<string, Sprite> IconSprites = new Dictionary<string, Sprite>();
         public static Font DefaultFont
-            => _font != null ? _font : (_font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
+        {
+            get
+            {
+                if (_font != null) return _font;
+#if UNITY_ANDROID && !UNITY_EDITOR
+                // Android's sans-serif family routes each script to the matching Noto font.
+                // This covers CJK, Cyrillic, Vietnamese and Thai without shipping a huge
+                // single-script font that would render another locale as empty boxes.
+                _font = Font.CreateDynamicFontFromOSFont("sans-serif", 32);
+#endif
+                if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                return _font;
+            }
+        }
 
         const int RoundedSize = 64;
         const int CornerRadius = 20;
@@ -200,6 +213,9 @@ namespace Cube.App
             var heading = Label(parent, "Title", title, UiMetrics.ScreenTitle,
                 p.TextPrimary, TextAnchor.MiddleLeft);
             heading.fontStyle = FontStyle.Bold;
+            heading.resizeTextForBestFit = true;
+            heading.resizeTextMinSize = 28;
+            heading.resizeTextMaxSize = UiMetrics.ScreenTitle;
             Stretch((RectTransform)heading.transform,
                 new Vector2(0.14f, 0.915f), new Vector2(0.82f, 0.975f), Vector4.zero);
 
@@ -319,6 +335,9 @@ namespace Cube.App
             img.type = Image.Type.Sliced;
 
             var text = Label(go.transform, "Label", label, UiMetrics.Button, p.TextPrimary);
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 18;
+            text.resizeTextMaxSize = UiMetrics.Button;
             Stretch((RectTransform)text.transform, Vector2.zero, Vector2.one, Vector4.zero);
 
             var btn = go.GetComponent<Button>();

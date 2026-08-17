@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -114,6 +115,13 @@ namespace Cube.App
         public static string F(string source, params object[] args)
             => string.Format(CultureInfo.CurrentCulture, T(source), args);
 
+        public static void RefreshAll(Transform root)
+        {
+            if (root == null) return;
+            var labels = root.GetComponentsInChildren<LocalizedText>(true);
+            for (int i = 0; i < labels.Length; i++) labels[i].Refresh();
+        }
+
         static bool TryLookup(string code, string source, out string value)
         {
             value = null;
@@ -124,20 +132,50 @@ namespace Cube.App
 
         static string TranslatePatterns(string source, string code)
         {
-            // Move notation, numbers and times are language-neutral. For previously unseen
-            // Korean copy, English remains the safe, readable fallback instead of a broken key.
             if (!ContainsKorean(source)) return source;
-            string value = source;
-            if (code == "en")
-            {
-                value = value.Replace("단계 완료", " stages complete")
-                    .Replace("단계를 먼저 마쳐 주세요.", "Please complete the previous stage first.")
-                    .Replace("완료", "Complete").Replace("시작", "Start")
-                    .Replace("열림", "Open").Replace("잠김", "Locked")
-                    .Replace("수", " moves").Replace("개", " items")
-                    .Replace("면", " faces");
-            }
-            return value;
+            Match m;
+            if ((m = Regex.Match(source, @"^(\d+)/7 단계 완료$")).Success)
+                return F("{0}/7 단계 완료", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+) / (\d+) 완료$")).Success)
+                return F("{0} / {1} 완료", m.Groups[1].Value, m.Groups[2].Value);
+            if ((m = Regex.Match(source, @"^(\d+)단계를 먼저 마쳐 주세요\.$")).Success)
+                return F("{0}단계를 먼저 마쳐 주세요.", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+)단계 · (.+)$")).Success)
+                return F("{0}단계 · {1}", m.Groups[1].Value, T(m.Groups[2].Value));
+            if ((m = Regex.Match(source, @"^(\d+)×(\d+) 연습$")).Success)
+                return F("{0}×{1} 연습", m.Groups[1].Value, m.Groups[2].Value);
+            if ((m = Regex.Match(source, @"^(\d+)개$")).Success)
+                return F("{0}개", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+)수$")).Success)
+                return F("{0}수", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+)×(\d+) · 기록 (\d+)개$")).Success)
+                return F("{0}×{1} · 기록 {2}개", m.Groups[1].Value, m.Groups[2].Value, m.Groups[3].Value);
+            if ((m = Regex.Match(source, @"^최근 (\d+)개$")).Success)
+                return F("최근 {0}개", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+) / 6면$")).Success)
+                return F("{0} / 6면", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(\d+)개 면을 저장했습니다$")).Success)
+                return F("{0}개 면을 저장했습니다", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^54칸을 읽었습니다 · 신뢰도 (\d+)%$")).Success)
+                return F("54칸을 읽었습니다 · 신뢰도 {0}%", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^색상 안정화 중\s+(\d+) / (\d+)$")).Success)
+                return F("색상 안정화 중 {0} / {1}", m.Groups[1].Value, m.Groups[2].Value);
+            if ((m = Regex.Match(source, @"^(\d+)/6\s+(.+)면 촬영 · 가운데 (.+)$")).Success)
+                return F("{0}/6 {1}면 촬영 · 가운데 {2}", m.Groups[1].Value,
+                    T(m.Groups[2].Value), T(m.Groups[3].Value));
+            if ((m = Regex.Match(source, @"^통과했습니다\. (\d+)단계가 열렸습니다\.$")).Success)
+                return F("통과했습니다. {0}단계가 열렸습니다.", m.Groups[1].Value);
+            if ((m = Regex.Match(source, @"^(.+) — 공식을 쓴 뒤 다시 살펴보세요\.$")).Success)
+                return F("{0} — 공식을 쓴 뒤 다시 살펴보세요.", T(m.Groups[1].Value));
+            if ((m = Regex.Match(source, @"^(.+) — 위층만 돌리면 맞습니다\.$")).Success)
+                return F("{0} — 위층만 돌리면 맞습니다.", T(m.Groups[1].Value));
+            if ((m = Regex.Match(source, @"^(.+) — 자세를 맞춘 뒤 공식을 한 번 씁니다\.$")).Success)
+                return F("{0} — 자세를 맞춘 뒤 공식을 한 번 씁니다.", T(m.Groups[1].Value));
+            if ((m = Regex.Match(source, @"^(.+) — 공식을 (\d+)번 써야 하는 경우입니다\.$")).Success)
+                return F("{0} — 공식을 {1}번 써야 하는 경우입니다.", T(m.Groups[1].Value), m.Groups[2].Value);
+            if ((m = Regex.Match(source, @"^(.+) — 조각 하나를 더 맞춥니다\. \((\d+)/4\)$")).Success)
+                return F("{0} — 조각 하나를 더 맞춥니다. ({1}/4)", T(m.Groups[1].Value), m.Groups[2].Value);
+            return EnglishFallback.TryGetValue(source, out var fallback) ? fallback : source;
         }
 
         static bool ContainsKorean(string value)
@@ -327,7 +365,31 @@ namespace Cube.App
 십자 만들기	Make the cross	十字を作る	制作十字	製作十字	製作十字	Formar la cruz	Former la croix	Kreuz bilden	Formar a cruz	Собрать крест	Tạo dấu cộng	Buat salib	สร้างกากบาท
 수네	Sune	スーン	Sune	Sune	Sune	Sune	Sune	Sune	Sune	Сунэ	Sune	Sune	ซูน
 모서리 돌리기	Cycle corners	角を入れ替える	轮换角块	輪換角塊	輪換角塊	Ciclar esquinas	Permuter les coins	Ecken tauschen	Ciclar cantos	Переставить углы	Đổi vị trí góc	Putar sudut	สลับมุม
-조각 돌리기	Cycle edges	辺を入れ替える	轮换棱块	輪換邊塊	輪換邊塊	Ciclar aristas	Permuter les arêtes	Kanten tauschen	Ciclar arestas	Переставить рёбра	Đổi vị trí cạnh	Putar tepi	สลับขอบ";
+조각 돌리기	Cycle edges	辺を入れ替える	轮换棱块	輪換邊塊	輪換邊塊	Ciclar aristas	Permuter les arêtes	Kanten tauschen	Ciclar arestas	Переставить рёбра	Đổi vị trí cạnh	Putar tepi	สลับขอบ
+최고	Best	ベスト	最佳	最佳	最佳	Mejor	Meilleur	Bestzeit	Melhor	Лучшее	Tốt nhất	Terbaik	ดีที่สุด
+① 초록 앞면으로 기준 잡기	① Start with the green front face	① 緑の前面から始める	① 从绿色前面开始	① 從綠色前面開始	① 從綠色前面開始	① Empieza con la cara verde al frente	① Commencez par la face verte devant	① Mit der grünen Vorderseite beginnen	① Comece com a face verde à frente	① Начните с зелёной передней грани	① Bắt đầu với mặt xanh lá phía trước	① Mulai dengan sisi hijau di depan	① เริ่มด้วยด้านสีเขียวไว้ด้านหน้า
+위 노랑 · 아래 흰색 · 왼쪽 빨강 · 오른쪽 주황	Top yellow · bottom white · left red · right orange	上 黄 · 下 白 · 左 赤 · 右 オレンジ	上黄 · 下白 · 左红 · 右橙	上黃 · 下白 · 左紅 · 右橙	上黃 · 下白 · 左紅 · 右橙	Arriba amarillo · abajo blanco · izquierda rojo · derecha naranja	Haut jaune · bas blanc · gauche rouge · droite orange	Oben Gelb · unten Weiß · links Rot · rechts Orange	Cima amarelo · baixo branco · esquerda vermelho · direita laranja	Сверху жёлтый · снизу белый · слева красный · справа оранжевый	Trên vàng · dưới trắng · trái đỏ · phải cam	Atas kuning · bawah putih · kiri merah · kanan oranye	บนเหลือง · ล่างขาว · ซ้ายแดง · ขวาส้ม
+반사광을 피하고 격자에 맞춘 뒤 약 1초간 고정해 주세요.	Avoid glare, align the grid, and hold still for about one second.	反射を避け、枠に合わせて約1秒止めてください。	避开反光，对准网格并保持约1秒。	避開反光，對準格線並保持約1秒。	避開反光，對準格線並保持約1秒。	Evita reflejos, alinea la cuadrícula y mantén el cubo quieto un segundo.	Évitez les reflets, alignez la grille et restez immobile une seconde.	Reflexionen vermeiden, am Raster ausrichten und etwa eine Sekunde stillhalten.	Evite reflexos, alinhe à grade e segure por cerca de um segundo.	Избегайте бликов, совместите с сеткой и держите неподвижно около секунды.	Tránh ánh chói, căn theo lưới và giữ yên khoảng một giây.	Hindari pantulan, sejajarkan dengan kisi, lalu tahan sekitar satu detik.	หลีกเลี่ยงแสงสะท้อน จัดให้ตรงกริด แล้วถือค้างประมาณหนึ่งวินาที
+{0}/7 단계 완료	{0}/7 stages complete	{0}/7ステップ完了	已完成{0}/7步	已完成{0}/7步	已完成{0}/7步	{0}/7 etapas completadas	{0}/7 étapes terminées	{0}/7 Schritte fertig	{0}/7 etapas concluídas	Пройдено {0}/7 этапов	Hoàn thành {0}/7 bước	{0}/7 tahap selesai	เสร็จ {0}/7 ขั้น
+{0} / {1} 완료	{0} / {1} complete	{0} / {1} 完了	完成 {0} / {1}	完成 {0} / {1}	完成 {0} / {1}	{0} / {1} completado	{0} / {1} terminé	{0} / {1} fertig	{0} / {1} concluído	Готово {0} / {1}	Hoàn thành {0} / {1}	{0} / {1} selesai	เสร็จ {0} / {1}
+{0}단계를 먼저 마쳐 주세요.	Complete stage {0} first.	先にステップ{0}を完了してください。	请先完成第{0}步。	請先完成第{0}步。	請先完成第{0}步。	Completa primero la etapa {0}.	Terminez d'abord l'étape {0}.	Bitte zuerst Stufe {0} abschließen.	Conclua primeiro a etapa {0}.	Сначала пройдите этап {0}.	Hãy hoàn thành bước {0} trước.	Selesaikan tahap {0} terlebih dahulu.	กรุณาทำขั้น {0} ให้เสร็จก่อน
+{0}단계 · {1}	Stage {0} · {1}	ステップ{0} · {1}	第{0}步 · {1}	第{0}步 · {1}	第{0}步 · {1}	Etapa {0} · {1}	Étape {0} · {1}	Stufe {0} · {1}	Etapa {0} · {1}	Этап {0} · {1}	Bước {0} · {1}	Tahap {0} · {1}	ขั้น {0} · {1}
+{0}×{1} 연습	{0}×{1} Practice	{0}×{1} 練習	{0}×{1}练习	{0}×{1}練習	{0}×{1}練習	Práctica {0}×{1}	Entraînement {0}×{1}	{0}×{1}-Übung	Prática {0}×{1}	Практика {0}×{1}	Luyện tập {0}×{1}	Latihan {0}×{1}	ฝึก {0}×{1}
+{0}개	{0} items	{0}個	{0}个	{0}個	{0}個	{0} elementos	{0} éléments	{0} Einträge	{0} itens	{0} шт.	{0} mục	{0} item	{0} รายการ
+{0}수	{0} moves	{0}手	{0}步	{0}步	{0}步	{0} movimientos	{0} mouvements	{0} Züge	{0} movimentos	{0} ходов	{0} bước	{0} langkah	{0} ครั้ง
+{0}×{1} · 기록 {2}개	{0}×{1} · {2} records	{0}×{1} · 記録{2}件	{0}×{1} · {2}条记录	{0}×{1} · {2}筆記錄	{0}×{1} · {2}筆記錄	{0}×{1} · {2} registros	{0}×{1} · {2} résultats	{0}×{1} · {2} Rekorde	{0}×{1} · {2} registros	{0}×{1} · записей: {2}	{0}×{1} · {2} thành tích	{0}×{1} · {2} catatan	{0}×{1} · {2} สถิติ
+최근 {0}개	Latest {0}	最新{0}件	最近{0}条	最近{0}筆	最近{0}筆	Últimos {0}	{0} derniers	Letzte {0}	Últimos {0}	Последние {0}	{0} mục gần đây	{0} terbaru	ล่าสุด {0} รายการ
+{0} / 6면	{0} / 6 faces	{0} / 6面	{0} / 6面	{0} / 6面	{0} / 6面	{0} / 6 caras	{0} / 6 faces	{0} / 6 Seiten	{0} / 6 faces	{0} / 6 граней	{0} / 6 mặt	{0} / 6 sisi	{0} / 6 ด้าน
+{0}개 면을 저장했습니다	Saved {0} faces	{0}面を保存しました	已保存{0}面	已儲存{0}面	已儲存{0}面	Se guardaron {0} caras	{0} faces enregistrées	{0} Seiten gespeichert	{0} faces salvas	Сохранено граней: {0}	Đã lưu {0} mặt	{0} sisi tersimpan	บันทึกแล้ว {0} ด้าน
+54칸을 읽었습니다 · 신뢰도 {0}%	54 stickers read · {0}% confidence	54マス認識 · 信頼度{0}%	已识别54格 · 置信度{0}%	已辨識54格 · 信心度{0}%	已辨識54格 · 信心度{0}%	54 casillas leídas · {0}% de confianza	54 cases lues · confiance {0}%	54 Felder erkannt · {0}% sicher	54 adesivos lidos · {0}% de confiança	Распознано 54 клетки · точность {0}%	Đã đọc 54 ô · độ tin cậy {0}%	54 kotak terbaca · keyakinan {0}%	อ่าน 54 ช่อง · ความมั่นใจ {0}%
+색상 안정화 중 {0} / {1}	Stabilizing colors {0} / {1}	色を安定化中 {0} / {1}	正在稳定颜色 {0} / {1}	正在穩定顏色 {0} / {1}	正在穩定顏色 {0} / {1}	Estabilizando colores {0} / {1}	Stabilisation des couleurs {0} / {1}	Farben werden stabilisiert {0} / {1}	Estabilizando cores {0} / {1}	Стабилизация цвета {0} / {1}	Đang ổn định màu {0} / {1}	Menstabilkan warna {0} / {1}	กำลังปรับสีให้คงที่ {0} / {1}
+{0}/6 {1}면 촬영 · 가운데 {2}	{0}/6 Scan {1} · center {2}	{0}/6 {1}面を撮影 · 中央{2}	{0}/6 拍摄{1}面 · 中心{2}	{0}/6 拍攝{1}面 · 中央{2}	{0}/6 拍攝{1}面 · 中央{2}	{0}/6 Escanea {1} · centro {2}	{0}/6 Scanner {1} · centre {2}	{0}/6 {1} scannen · Mitte {2}	{0}/6 Digitalize {1} · centro {2}	{0}/6 Снимите {1} · центр {2}	{0}/6 Quét mặt {1} · tâm {2}	{0}/6 Pindai {1} · tengah {2}	{0}/6 สแกนด้าน{1} · กลาง{2}
+통과했습니다. {0}단계가 열렸습니다.	Passed! Stage {0} is unlocked.	合格！ステップ{0}が開きました。	通过！第{0}步已解锁。	通過！第{0}步已解鎖。	通過！第{0}步已解鎖。	¡Superado! Se desbloqueó la etapa {0}.	Réussi ! L'étape {0} est débloquée.	Geschafft! Stufe {0} ist freigeschaltet.	Concluído! A etapa {0} foi liberada.	Готово! Этап {0} открыт.	Đã qua! Bước {0} được mở.	Berhasil! Tahap {0} terbuka.	ผ่านแล้ว! ปลดล็อกขั้น {0}
+{0} — 공식을 쓴 뒤 다시 살펴보세요.	{0} — Apply the algorithm, then check again.	{0} — 手順を行ってから確認しましょう。	{0} — 执行公式后再检查。	{0} — 執行公式後再檢查。	{0} — 執行公式後再檢查。	{0} — Aplica el algoritmo y vuelve a revisar.	{0} — Appliquez l'algorithme puis vérifiez.	{0} — Algorithmus ausführen und erneut prüfen.	{0} — Faça o algoritmo e verifique novamente.	{0} — Выполните алгоритм и проверьте снова.	{0} — Thực hiện công thức rồi kiểm tra lại.	{0} — Jalankan algoritma lalu periksa lagi.	{0} — ทำตามสูตรแล้วตรวจอีกครั้ง
+{0} — 위층만 돌리면 맞습니다.	{0} — Only turn the top layer to align it.	{0} — 上面を回すだけで揃います。	{0} — 只需转动顶层即可。	{0} — 只需轉動頂層即可。	{0} — 只需轉動頂層即可。	{0} — Solo gira la capa superior.	{0} — Tournez seulement la couche du haut.	{0} — Nur die obere Ebene drehen.	{0} — Gire apenas a camada superior.	{0} — Поверните только верхний слой.	{0} — Chỉ cần xoay tầng trên.	{0} — Cukup putar lapisan atas.	{0} — หมุนเฉพาะชั้นบน
+{0} — 자세를 맞춘 뒤 공식을 한 번 씁니다.	{0} — Align it, then apply the algorithm once.	{0} — 向きを合わせて手順を1回行います。	{0} — 调整方向后执行一次公式。	{0} — 調整方向後執行一次公式。	{0} — 調整方向後執行一次公式。	{0} — Alinéalo y aplica el algoritmo una vez.	{0} — Alignez puis appliquez l'algorithme une fois.	{0} — Ausrichten und den Algorithmus einmal ausführen.	{0} — Alinhe e faça o algoritmo uma vez.	{0} — Выровняйте и выполните алгоритм один раз.	{0} — Căn chỉnh rồi thực hiện công thức một lần.	{0} — Sejajarkan lalu jalankan algoritma sekali.	{0} — จัดแนวแล้วทำสูตรหนึ่งครั้ง
+{0} — 공식을 {1}번 써야 하는 경우입니다.	{0} — Apply the algorithm {1} times.	{0} — 手順を{1}回行います。	{0} — 需要执行公式{1}次。	{0} — 需要執行公式{1}次。	{0} — 需要執行公式{1}次。	{0} — Aplica el algoritmo {1} veces.	{0} — Appliquez l'algorithme {1} fois.	{0} — Algorithmus {1}-mal ausführen.	{0} — Faça o algoritmo {1} vezes.	{0} — Выполните алгоритм {1} раз.	{0} — Thực hiện công thức {1} lần.	{0} — Jalankan algoritma {1} kali.	{0} — ทำสูตร {1} ครั้ง
+{0} — 조각 하나를 더 맞춥니다. ({1}/4)	{0} — Solve one more piece. ({1}/4)	{0} — もう1つ揃えます。({1}/4)	{0} — 再还原一块。({1}/4)	{0} — 再還原一塊。({1}/4)	{0} — 再還原一塊。({1}/4)	{0} — Resuelve una pieza más. ({1}/4)	{0} — Placez une pièce de plus. ({1}/4)	{0} — Noch ein Teil lösen. ({1}/4)	{0} — Resolva mais uma peça. ({1}/4)	{0} — Соберите ещё один элемент. ({1}/4)	{0} — Giải thêm một mảnh. ({1}/4)	{0} — Selesaikan satu bagian lagi. ({1}/4)	{0} — แก้อีกหนึ่งชิ้น ({1}/4)";
 
         // Detailed coaching copy falls back to English when a locale-specific sentence is
         // not available yet. This keeps every supported locale usable without exposing keys.
@@ -389,7 +451,40 @@ namespace Cube.App
 경로 다시 계산	Recalculate solution
 묶음 완료	Sequence complete
 안내	Guide
-학습 목록으로	Back to lessons";
+학습 목록으로	Back to lessons
+새 기록을 기다리는 중	Waiting for your first record
+첫 연습을 마치면 최고 기록과 평균이\n여기에 차곡차곡 쌓여요.	Finish a practice solve to start building your best times and averages here.
+반시계	Counterclockwise
+가운데 오른쪽	Middle layer · right
+가운데 왼쪽	Middle layer · left
+안티수네	Anti-Sune
+티 공식	T permutation
+첫 층 모서리를 아래로 넣을 때	Insert a first-layer corner
+가운데 층 조각을 오른쪽으로	Insert a middle-layer edge to the right
+가운데 층 조각을 왼쪽으로	Insert a middle-layer edge to the left
+위 면에 십자를 만들 때	Make a cross on the top face
+위 면을 노랗게 채울 때	Orient the yellow face
+수네의 반대 방향	The reverse of Sune
+위층 모서리 자리를 맞출 때	Position the top-layer corners
+마지막 조각들을 맞출 때	Solve the final edges
+자주 쓰는 마지막 층 공식	A common last-layer algorithm
+공식 카드를 누르면 큐브에서 보여줍니다.	Tap an algorithm card to see it on the cube.
+① 초록 앞면으로 기준 잡기	① Start with the green front face
+위 노랑 · 아래 흰색 · 왼쪽 빨강 · 오른쪽 주황	Top yellow · bottom white · left red · right orange
+아래에서 색을 고른 뒤 전개도의 칸을 누르면 바뀝니다.	Choose a color below, then tap a sticker in the net to change it.
+클래식	Classic
+톤다운	Muted
+파스텔	Pastel
+다크스틸	Dark Steel
+비비드	Vivid
+우드	Wood
+말랑 친구들	Kawaii Pals
+문라이트 리조트	Moonlight Resort
+별빛 모험단	Starlight Crew
+여름 바캉스	Summer Holiday
+‘한 면 전체’에서는 색상을 모두 맞춘 뒤 그림의 위·아래·좌·우 방향을 맞추는 공식이 한 번 더 나옵니다.\n‘조각마다 반복’은 일반 큐브처럼 색상만 맞추면 끝나요.	Whole-face images need one final orientation algorithm after the colors are solved. Repeat-per-sticker skins finish when the colors are solved.
+펴기	Expand
+접기	Collapse";
     }
 
     /// Keeps runtime-assigned Text.text values localized without every screen needing a
@@ -408,6 +503,9 @@ namespace Cube.App
         }
 
         void LateUpdate()
+            => Refresh();
+
+        public void Refresh()
         {
             if (_text == null) _text = GetComponent<Text>();
             if (_text != null && _text.text != _rendered)

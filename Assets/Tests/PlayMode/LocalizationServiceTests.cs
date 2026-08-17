@@ -1,6 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Cube.App.Tests
 {
@@ -96,6 +99,48 @@ namespace Cube.App.Tests
             LocalizationService.SetLanguage("ja");
             Assert.AreEqual("Hold the cube with white on the bottom and keep this orientation.",
                 LocalizationService.T("큐브를 흰 면이 아래로 가게 잡습니다. 앞으로 이 방향을 계속 유지합니다."));
+        }
+
+        [UnityTest]
+        public IEnumerator EveryForeignLocaleRendersBuiltScreensWithoutHangul()
+        {
+            LocalizationService.SetLanguage("en");
+            var root = new GameObject("LocalizationReleaseAudit");
+            var app = root.AddComponent<AppBootstrap>();
+            app.Router.OpenLesson(1);
+            app.Router.StartPractice(3);
+            var failures = new List<string>();
+
+            foreach (var locale in LocalizationService.Supported)
+            {
+                if (locale.Code == "ko") continue;
+                LocalizationService.SetLanguage(locale.Code);
+                yield return null;
+                yield return null;
+                app.Router.StartPractice(3);
+                app.Router.OpenLesson(1);
+                LocalizationService.RefreshAll(app.UiCanvas.transform);
+
+                var texts = app.UiCanvas.GetComponentsInChildren<Text>(true);
+                foreach (var label in texts)
+                {
+                    if (string.IsNullOrEmpty(label.text)) continue;
+                    if (label.transform.parent != null
+                        && label.transform.parent.name.StartsWith("Language_")) continue;
+                    if (ContainsHangul(label.text))
+                        failures.Add($"{locale.Code} / {label.transform.parent?.name}/{label.name}: {label.text}");
+                }
+            }
+
+            Object.DestroyImmediate(root);
+            Assert.IsEmpty(failures, string.Join("\n", failures));
+        }
+
+        static bool ContainsHangul(string value)
+        {
+            for (int i = 0; i < value.Length; i++)
+                if (value[i] >= '\uac00' && value[i] <= '\ud7a3') return true;
+            return false;
         }
     }
 }
