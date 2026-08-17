@@ -2,6 +2,13 @@
 
 최종 수정일: 2026년 8월 17일
 
+> **출시에 쓰는 것은 이 파일이 아니라 `legal` 저장소의 공개 페이지다.**
+> 스토어 콘솔에 넣는 주소: https://yongminlee2.github.io/legal/cube3d/privacy.html
+> (원본 HTML은 `C:\workAndroid\legal\cube3d\privacy.html`, 한국어·영어 한 페이지)
+>
+> 이 저장소는 언젠가 비공개로 돌릴 수 있어서, 출시에 필요한 주소는 전부
+> 공개로 두는 `legal` 저장소에 있다. **방침을 고치면 그쪽도 같이 고칠 것.**
+
 영어판: [`privacy-policy-en.md`](privacy-policy-en.md)
 
 플레이스토어 등록에는 공개된 주소의 개인정보처리방침이 필요하다.

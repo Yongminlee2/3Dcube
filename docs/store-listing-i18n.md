@@ -1,5 +1,14 @@
 # 플레이스토어 등록 정보 — 14개 언어
 
+> **이 파일의 사본이 `legal` 저장소에도 있다** (`legal/cube3d/store-listing.md`).
+> 이 저장소는 비공개로 돌릴 수 있어서, 출시에 필요한 것은 공개로 두는 쪽에
+> 둔다. **문구를 고치면 양쪽을 같이 고칠 것.**
+>
+> 스토어에 넣을 링크
+> - 개인정보처리방침 `https://yongminlee2.github.io/legal/cube3d/privacy.html`
+> - 웹사이트 `https://yongminlee2.github.io/legal/cube3d/`
+> - 지원 `https://yongminlee2.github.io/legal/cube3d/support.html`
+
 한국어 원본은 [`store-listing.md`](store-listing.md)에 있다. 여기 있는 것을
 플레이 콘솔 [기본 스토어 등록정보]에서 언어를 추가하며 그대로 붙여 넣는다.
 
