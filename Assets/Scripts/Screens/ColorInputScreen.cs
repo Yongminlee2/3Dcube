@@ -35,21 +35,6 @@ namespace Cube.App
         static readonly string[] PhysicalColorNames =
             { "노란색", "흰색", "초록색", "파란색", "빨간색", "주황색" };
 
-        /// 방향 안내에 세우는 칸 순서.
-        static readonly string[] GuideDirections = { "위", "아래", "왼쪽", "오른쪽", "뒤" };
-
-        /// 어떤 면을 카메라로 향했을 때 GuideDirections 순서대로 와야 하는 면.
-        /// Face 순서(U, D, F, B, L, R)로 찾는다.
-        static readonly Face[][] GuideFaces =
-        {
-            new[] { Face.B, Face.F, Face.L, Face.R, Face.D },  // 윗면을 볼 때
-            new[] { Face.F, Face.B, Face.L, Face.R, Face.U },  // 아랫면
-            new[] { Face.U, Face.D, Face.L, Face.R, Face.B },  // 앞면
-            new[] { Face.U, Face.D, Face.R, Face.L, Face.F },  // 뒷면
-            new[] { Face.U, Face.D, Face.B, Face.F, Face.R },  // 왼쪽 면
-            new[] { Face.U, Face.D, Face.F, Face.B, Face.L },  // 오른쪽 면
-        };
-
         public CubeState Current { get; private set; }
         public byte SelectedColor { get; private set; }
         public int CapturedFaceCount
@@ -88,8 +73,6 @@ namespace Cube.App
         Text _instruction;
         Image _targetColorBanner;
         Text _targetColorLabel;
-        Image[] _guideChips;
-        Text[] _guideChipLabels;
         Button[] _faceButtons;
         Image[,] _facePreviewCells;
         Outline[] _faceOutlines;
@@ -173,9 +156,12 @@ namespace Cube.App
             SkinService.Changed -= OnSkinChanged;
         }
 
-        /// 지금 찍는 면을 카메라로 향했을 때, 둘레 네 면과 등 뒤 면에 어떤 색이
-        /// 와야 하는지를 색 칩으로 보여 준다. 글로만 적어 두면 읽지 않고 넘어가
-        /// 방향을 틀리게 잡는 일이 있어서 색을 직접 띄운다.
+        /// 이 앱이 전제하는 큐브 배색을 여섯 면 모두 색 칩으로 보여 준다.
+        ///
+        /// 찍는 면마다 바뀌면 오히려 헷갈린다 — 촬영 중인 면 이름(「위면」)과
+        /// 화면에서의 방향(「위」)이 같은 낱말이라, 윗면을 찍는데 위 칸에 파랑이
+        /// 떠 있으면 윗면이 파란색이라는 뜻으로 읽힌다. 그래서 이 줄은 처음부터
+        /// 끝까지 고정이고, 어느 면을 어떻게 향하게 할지는 위 안내문이 말한다.
         /// 칩 안에 색 이름도 같이 적어 색만으로 구분하지 않아도 되게 했다.
         void BuildOrientationGuide()
         {
@@ -183,55 +169,48 @@ namespace Cube.App
             UiKit.Stretch(guide,
                 new Vector2(0.055f, 0.885f), new Vector2(0.945f, 0.952f), Vector4.zero);
 
-            _guideChips = new Image[GuideDirections.Length];
-            _guideChipLabels = new Text[GuideDirections.Length];
+            var caption = UiKit.Label(guide, "Caption", "색 기준", 17,
+                _p.TextSecondary, TextAnchor.MiddleLeft);
+            caption.fontStyle = FontStyle.Bold;
+            UiKit.Fit(caption, 11, 17);
+            UiKit.Stretch((RectTransform)caption.transform,
+                new Vector2(0f, 0f), new Vector2(0.15f, 1f), Vector4.zero);
 
-            for (int i = 0; i < GuideDirections.Length; i++)
+            var chipRow = UiKit.Panel(guide, "Chips", new Color(0, 0, 0, 0));
+            UiKit.Stretch(chipRow, new Vector2(0.16f, 0f), new Vector2(1f, 1f), Vector4.zero);
+
+            Color[] reference = CubeColorRecognizer.PhysicalReferenceColors();
+
+            for (int face = 0; face < FaceNames.Length; face++)
             {
-                var column = UiKit.Panel(guide, $"Guide_{i}", new Color(0, 0, 0, 0));
-                column.anchorMin = new Vector2(i / (float)GuideDirections.Length, 0f);
-                column.anchorMax = new Vector2((i + 1) / (float)GuideDirections.Length, 1f);
-                column.offsetMin = new Vector2(4f, 0f);
-                column.offsetMax = new Vector2(-4f, 0f);
+                var column = UiKit.Panel(chipRow, $"Guide_{face}", new Color(0, 0, 0, 0));
+                column.anchorMin = new Vector2(face / (float)FaceNames.Length, 0f);
+                column.anchorMax = new Vector2((face + 1) / (float)FaceNames.Length, 1f);
+                column.offsetMin = new Vector2(3f, 0f);
+                column.offsetMax = new Vector2(-3f, 0f);
 
-                var direction = UiKit.Label(column, "Direction", GuideDirections[i], 19,
+                var faceName = UiKit.Label(column, "Face", FaceNames[face], 19,
                     _p.TextSecondary, TextAnchor.LowerCenter);
-                direction.fontStyle = FontStyle.Bold;
-                UiKit.Fit(direction, 12, 19);
-                UiKit.Stretch((RectTransform)direction.transform,
+                faceName.fontStyle = FontStyle.Bold;
+                UiKit.Fit(faceName, 11, 19);
+                UiKit.Stretch((RectTransform)faceName.transform,
                     new Vector2(0f, 0.50f), new Vector2(1f, 1f), Vector4.zero);
 
-                var chip = UiKit.Cell(column, "Chip", _p.SurfaceMuted);
+                Color color = reference[face];
+                var chip = UiKit.Cell(column, "Chip", color);
                 chip.sprite = UiKit.RoundedPill;
                 chip.type = Image.Type.Sliced;
                 UiKit.Stretch((RectTransform)chip.transform,
                     new Vector2(0f, 0.02f), new Vector2(1f, 0.46f), Vector4.zero);
-                _guideChips[i] = chip;
 
-                var colorName = UiKit.Label(chip.transform, "Name", "", 17,
-                    Color.black, TextAnchor.MiddleCenter);
-                colorName.fontStyle = FontStyle.Bold;
-                UiKit.Fit(colorName, 10, 17);
-                UiKit.Stretch((RectTransform)colorName.transform,
-                    new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.94f), Vector4.zero);
-                _guideChipLabels[i] = colorName;
-            }
-        }
-
-        void RefreshOrientationGuide(Face target)
-        {
-            if (_guideChips == null) return;
-            Face[] around = GuideFaces[(int)target];
-            Color[] reference = CubeColorRecognizer.PhysicalReferenceColors();
-
-            for (int i = 0; i < _guideChips.Length; i++)
-            {
-                Color color = reference[(int)around[i]];
-                _guideChips[i].color = color;
                 float luminance = 0.299f * color.r + 0.587f * color.g + 0.114f * color.b;
-                _guideChipLabels[i].color = luminance > 0.55f
-                    ? new Color(0.04f, 0.05f, 0.07f) : Color.white;
-                _guideChipLabels[i].text = PhysicalColorNames[(int)around[i]];
+                var colorName = UiKit.Label(chip.transform, "Name", PhysicalColorNames[face],
+                    17, luminance > 0.55f ? new Color(0.04f, 0.05f, 0.07f) : Color.white,
+                    TextAnchor.MiddleCenter);
+                colorName.fontStyle = FontStyle.Bold;
+                UiKit.Fit(colorName, 9, 17);
+                UiKit.Stretch((RectTransform)colorName.transform,
+                    new Vector2(0.05f, 0.06f), new Vector2(0.95f, 0.94f), Vector4.zero);
             }
         }
 
@@ -246,12 +225,15 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)_progress.transform,
                 new Vector2(0.06f, 0.925f), new Vector2(0.25f, 0.985f), Vector4.zero);
 
-            _instruction = UiKit.Label(_scanRoot, "Instruction", "", UiMetrics.Caption,
-                _p.TextSecondary, TextAnchor.MiddleLeft);
+            // 지금 큐브를 어떻게 돌려야 하는지가 이 화면에서 가장 중요한 문장이다.
+            // 작게, 그것도 맨 위 구석에 붙어 있어서 눈에 안 띈다는 이야기가 있어
+            // 옆 숫자와 같은 높이로 내리고 크기도 키웠다.
+            _instruction = UiKit.Label(_scanRoot, "Instruction", "", UiMetrics.Body,
+                _p.TextPrimary, TextAnchor.MiddleCenter);
             _instruction.fontStyle = FontStyle.Bold;
-            UiKit.Fit(_instruction, 15, UiMetrics.Caption);
+            UiKit.Fit(_instruction, 16, UiMetrics.Body);
             UiKit.Stretch((RectTransform)_instruction.transform,
-                new Vector2(0.25f, 0.950f), new Vector2(0.95f, 0.995f), Vector4.zero);
+                new Vector2(0.26f, 0.920f), new Vector2(0.945f, 0.990f), Vector4.zero);
 
             BuildOrientationGuide();
 
@@ -740,7 +722,6 @@ namespace Cube.App
                 _targetColorLabel.text =
                     $"{_captureSlot + 1}/6  {FaceNames[(int)targetFace]}면 촬영 · 가운데 {PhysicalColorNames[(int)targetFace]}";
             }
-            RefreshOrientationGuide(targetFace);
 
             Color[] centers = ClassificationCenters();
             Color[] palette = CubeColorRecognizer.PhysicalReferenceColors();

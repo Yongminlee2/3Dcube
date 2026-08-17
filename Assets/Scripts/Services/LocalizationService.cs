@@ -373,6 +373,7 @@ namespace Cube.App
 언어 선택	Choose language	言語を選択	选择语言	選擇語言	選擇語言	Elegir idioma	Choisir la langue	Sprache wählen	Escolher idioma	Выбор языка	Chọn ngôn ngữ	Pilih bahasa	เลือกภาษา
 닫기	Close	閉じる	关闭	關閉	關閉	Cerrar	Fermer	Schließen	Fechar	Закрыть	Đóng	Tutup	ปิด
 위	Top	上	上	上	上	Arriba	Haut	Oben	Cima	Верх	Trên	Atas	บน
+색 기준	Cube colors	色の基準	配色基准	配色基準	配色基準	Colores del cubo	Couleurs du cube	Würfelfarben	Cores do cubo	Цвета кубика	Màu của khối	Warna kubus	สีลูกบาศก์
 아래	Bottom	下	下	下	下	Abajo	Bas	Unten	Baixo	Низ	Dưới	Bawah	ล่าง
 앞	Front	前	前	前	前	Frente	Avant	Vorne	Frente	Перед	Trước	Depan	หน้า
 뒤	Back	後	后	後	後	Atrás	Arrière	Hinten	Trás	Зад	Sau	Belakang	หลัง

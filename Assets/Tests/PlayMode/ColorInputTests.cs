@@ -241,35 +241,44 @@ namespace Cube.App.Tests
             StringAssert.Contains("앞면", target.text);
             StringAssert.Contains("초록색", target.text);
 
-            // 방향 안내는 글이 아니라 색 칩으로 보여 준다. 앞면을 찍는 동안
-            // 둘레 네 면과 등 뒤 면에 와야 하는 색이 그대로 떠 있어야 한다.
+            // 색 기준 줄은 이 앱이 전제하는 배색을 여섯 면 모두 보여 주고,
+            // 찍는 면이 바뀌어도 절대 흔들리지 않는다 — 매번 바뀌면 「위면 촬영」의
+            // '위'와 헷갈려서, 윗면이 그 색인 줄로 읽힌다.
             var expected = new[]
             {
                 ("위", Face.U, "노란색"),
                 ("아래", Face.D, "흰색"),
+                ("앞", Face.F, "초록색"),
+                ("뒤", Face.B, "파란색"),
                 ("왼쪽", Face.L, "빨간색"),
                 ("오른쪽", Face.R, "주황색"),
-                ("뒤", Face.B, "파란색"),
             };
             var reference = CubeColorRecognizer.PhysicalReferenceColors();
 
             for (int i = 0; i < expected.Length; i++)
             {
                 var (label, face, colorName) = expected[i];
-                var column = _input.transform.Find($"ScanMode/OrientationGuide/Guide_{i}");
+                var column = _input.transform.Find($"ScanMode/OrientationGuide/Chips/Guide_{i}");
                 Assert.IsNotNull(column, $"{label} 칸이 없다");
-
-                var direction = column.Find("Direction").GetComponent<UnityEngine.UI.Text>();
-                Assert.AreEqual(label, direction.text);
+                Assert.AreEqual(label,
+                    column.Find("Face").GetComponent<UnityEngine.UI.Text>().text);
 
                 var chip = column.Find("Chip").GetComponent<UnityEngine.UI.Image>();
                 TestColors.AssertSame(reference[(int)face], chip.color,
                     $"{label}에 뜬 색이 {face}면 색이 아니다");
 
-                var name = column.Find("Chip/Name").GetComponent<UnityEngine.UI.Text>();
-                Assert.AreEqual(colorName, name.text,
+                Assert.AreEqual(colorName,
+                    column.Find("Chip/Name").GetComponent<UnityEngine.UI.Text>().text,
                     "색만으로 구분하지 않도록 칩 안에 색 이름도 적어야 한다");
             }
+
+            // 다음 면으로 넘어가도 그대로여야 한다.
+            _input.ApplyScannedFace(Face.F, CubeColorRecognizerTests.SamplesFor(CubeState.Solved(3))[(int)Face.F]);
+            yield return null;
+            TestColors.AssertSame(reference[(int)Face.U],
+                _input.transform.Find("ScanMode/OrientationGuide/Chips/Guide_0/Chip")
+                    .GetComponent<UnityEngine.UI.Image>().color,
+                "면을 찍을 때마다 색 기준이 바뀌면 안 된다");
         }
 
         [Test]
