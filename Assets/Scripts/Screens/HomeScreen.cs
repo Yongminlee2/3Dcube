@@ -208,17 +208,13 @@ namespace Cube.App
             label.fontSize = 25;
             label.fontStyle = FontStyle.Bold;
             label.alignment = TextAnchor.MiddleLeft;
-            label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 20;
-            label.resizeTextMaxSize = 25;
+            UiKit.Fit(label, 20, 25);
             UiKit.Stretch((RectTransform)label.transform,
                 new Vector2(0.30f, 0.46f), new Vector2(0.91f, 0.88f), Vector4.zero);
 
             var subtitleLabel = UiKit.Label(card.transform, "Subtitle", subtitle, 18,
                 _p.TextSecondary, TextAnchor.MiddleLeft);
-            subtitleLabel.resizeTextForBestFit = true;
-            subtitleLabel.resizeTextMinSize = 14;
-            subtitleLabel.resizeTextMaxSize = 18;
+            UiKit.Fit(subtitleLabel, 14, 18);
             UiKit.Stretch((RectTransform)subtitleLabel.transform,
                 new Vector2(0.30f, 0.10f), new Vector2(0.93f, 0.48f), Vector4.zero);
 

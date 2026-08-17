@@ -148,8 +148,9 @@ namespace Cube.App
 
             var footnote = UiKit.Label(transform, "Footnote", "연습 중인 큐브 상태는 그대로 유지됩니다", 20,
                 _p.TextSecondary, TextAnchor.MiddleCenter);
+            // 목록 바닥(0.10)까지 올라오면, 스크롤에 잘려 보이는 다음 줄 위에 글자가 겹쳐 찍힌다.
             UiKit.Stretch((RectTransform)footnote.transform,
-                new Vector2(0.06f, 0.065f), new Vector2(0.94f, 0.115f), Vector4.zero);
+                new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.085f), Vector4.zero);
 
             BuildArtworkInfoDialog();
             Refresh();

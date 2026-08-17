@@ -137,9 +137,7 @@ namespace Cube.App
             _scrambleLabel = UiKit.Label(scrambleCard, "Scramble",
                 "섞기 버튼으로 시작 · 두 손가락으로 시점 조절", UiMetrics.Caption,
                 p.TextSecondary, TextAnchor.MiddleLeft);
-            _scrambleLabel.resizeTextForBestFit = true;
-            _scrambleLabel.resizeTextMinSize = 15;
-            _scrambleLabel.resizeTextMaxSize = UiMetrics.Caption;
+            UiKit.Fit(_scrambleLabel, 15, UiMetrics.Caption);
             UiKit.Stretch((RectTransform)_scrambleLabel.transform,
                 new Vector2(0.22f, 0.08f), new Vector2(0.965f, 0.92f), Vector4.zero);
 
@@ -192,8 +190,10 @@ namespace Cube.App
             _padRoot.SetActive(AppSettings.ShowPad);
 
             var bar = UiKit.Card(transform, "Bar", p, raised: true);
+            // 아이콘이 글자보다 작아 보이지 않으려면 바가 이 정도는 돼야 한다.
+            // 위로는 패드 바닥(padBottom)까지만 늘린다.
             UiKit.Stretch(bar,
-                new Vector2(ContentLeft, 0.018f), new Vector2(ContentRight, 0.075f), Vector4.zero);
+                new Vector2(ContentLeft, 0.012f), new Vector2(ContentRight, 0.082f), Vector4.zero);
             UiKit.AddSoftOutline(bar.GetComponent<Image>(), p.Border, 1f);
             MakeBarButton(bar, "섞기", "shuffle", 0, RequestScramble, p, true, false);
             MakeBarButton(bar, "힌트", "lightbulb", 1, ShowHint, p, false, false);
@@ -219,30 +219,34 @@ namespace Cube.App
                 p.Accent, TextAnchor.MiddleLeft);
             tag.fontStyle = FontStyle.Bold;
             UiKit.Stretch((RectTransform)tag.transform,
-                new Vector2(0.035f, 0.52f), new Vector2(0.26f, 0.90f), Vector4.zero);
+                new Vector2(0.035f, 0.62f), new Vector2(0.26f, 0.95f), Vector4.zero);
 
             _hintNotation = UiKit.Label(card, "HintNotation", "직접 조작",
                 30, p.TextPrimary, TextAnchor.MiddleLeft);
             _hintNotation.fontStyle = FontStyle.Bold;
-            _hintNotation.resizeTextForBestFit = true;
-            _hintNotation.resizeTextMinSize = 17;
-            _hintNotation.resizeTextMaxSize = 30;
+
+            // 줄바꿈을 켜야 자동 축소가 가로 폭까지 본다. 켜지 않으면 유니티가
+            // 세로만 맞추고 가로는 넘치게 두어, 마지막 층 공식처럼 긴 수식
+            // (U2 B U B' U' B U B' U' B U B' U)이 칸을 뚫고 설명문 위에 겹쳐 찍힌다.
+            // 실제로 섞은 뒤 첫 층까지 따라가 보다가 나왔다.
+            UiKit.Wrap(_hintNotation);
+            UiKit.Fit(_hintNotation, 13, 30);
+            // 실제로 눌러야 하는 것은 이 수식이므로 설명문보다 가로를 넉넉히 주고,
+            // 세로는 위 「힌트」 딱지 아래로 내려서 겹치지 않게 한다.
             UiKit.Stretch((RectTransform)_hintNotation.transform,
-                new Vector2(0.035f, 0.10f), new Vector2(0.29f, 0.56f), Vector4.zero);
+                new Vector2(0.035f, 0.06f), new Vector2(0.40f, 0.60f), Vector4.zero);
 
             var divider = UiKit.Divider(card, "HintDivider", p.Border);
             UiKit.Stretch(divider,
-                new Vector2(0.315f, 0.18f), new Vector2(0.317f, 0.82f), Vector4.zero);
+                new Vector2(0.425f, 0.18f), new Vector2(0.427f, 0.82f), Vector4.zero);
 
             _hintExplanation = UiKit.Label(card, "HintExplanation",
                 "힌트를 누르면 다음 동작을 설명해 드려요. 큐브는 자동으로 움직이지 않습니다.",
                 23, p.TextSecondary, TextAnchor.MiddleLeft);
-            _hintExplanation.resizeTextForBestFit = true;
-            _hintExplanation.resizeTextMinSize = 18;
-            _hintExplanation.resizeTextMaxSize = 23;
+            UiKit.Fit(_hintExplanation, 18, 23);
             UiKit.Wrap(_hintExplanation);
             UiKit.Stretch((RectTransform)_hintExplanation.transform,
-                new Vector2(0.35f, 0.12f), new Vector2(0.965f, 0.88f), Vector4.zero);
+                new Vector2(0.455f, 0.10f), new Vector2(0.965f, 0.90f), Vector4.zero);
         }
 
         void ToggleNet()
@@ -427,19 +431,23 @@ namespace Cube.App
             btn.image.sprite = UiKit.RoundedTight;
 
             var text = btn.transform.Find("Label").GetComponent<Text>();
-            text.fontSize = 24;
+            // 아이콘을 키운 뒤로는 24가 커 보인다. 다른 화면 버튼 글자와 비슷하게 낮춘다.
+            text.fontSize = 21;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.LowerCenter;
             UiKit.Stretch((RectTransform)text.transform,
-                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.47f), Vector4.zero);
+                new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.42f), Vector4.zero);
 
             Color color = danger
                 ? new Color(1f, 0.34f, 0.38f, 1f)
                 : primary ? p.TextOnAccent : p.TextPrimary;
             text.color = color;
             var icon = UiKit.Icon(btn.transform, "Icon", iconName, color);
+            // 아이콘 그림(96px)은 실제 선이 54px뿐이고 나머지는 투명 여백이라,
+            // 칸을 글자 칸보다 크게 잡아야 굵은 글자와 크기가 맞아 보인다.
+            // 예전에는 세로 38%밖에 못 받아서 아이콘만 가늘고 작았다.
             UiKit.Stretch((RectTransform)icon.transform,
-                new Vector2(0.35f, 0.50f), new Vector2(0.65f, 0.88f), Vector4.zero);
+                new Vector2(0.30f, 0.44f), new Vector2(0.70f, 1f), Vector4.zero);
 
             if (index > 0)
             {

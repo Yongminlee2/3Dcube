@@ -202,9 +202,7 @@ namespace Cube.App
                 new Vector2(xMin, top - 0.078f), new Vector2(xMax, top), Vector4.zero);
             var text = button.GetComponentInChildren<Text>();
             text.fontSize = 21;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 16;
-            text.resizeTextMaxSize = 21;
+            UiKit.Fit(text, 16, 21);
         }
 
         void OpenLanguagePicker()

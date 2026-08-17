@@ -67,6 +67,7 @@ namespace Cube.App
         RectTransform _scanRoot;
         RawImage _cameraPreview;
         Text _cameraMessage;
+        GameObject _detectionGrid;
         Image[] _liveCells;
         Text _progress;
         Text _instruction;
@@ -170,9 +171,7 @@ namespace Cube.App
             _instruction = UiKit.Label(_scanRoot, "Instruction", "", UiMetrics.Caption,
                 _p.TextSecondary, TextAnchor.MiddleLeft);
             _instruction.fontStyle = FontStyle.Bold;
-            _instruction.resizeTextForBestFit = true;
-            _instruction.resizeTextMinSize = 15;
-            _instruction.resizeTextMaxSize = UiMetrics.Caption;
+            UiKit.Fit(_instruction, 15, UiMetrics.Caption);
             UiKit.Stretch((RectTransform)_instruction.transform,
                 new Vector2(0.25f, 0.950f), new Vector2(0.95f, 0.995f), Vector4.zero);
 
@@ -182,9 +181,7 @@ namespace Cube.App
             _orientationGuide = UiKit.Label(directionGuide, "Label", "", 18,
                 _p.TextSecondary, TextAnchor.MiddleLeft);
             _orientationGuide.fontStyle = FontStyle.Bold;
-            _orientationGuide.resizeTextForBestFit = true;
-            _orientationGuide.resizeTextMinSize = 15;
-            _orientationGuide.resizeTextMaxSize = 18;
+            UiKit.Fit(_orientationGuide, 15, 18);
             UiKit.Stretch((RectTransform)_orientationGuide.transform,
                 Vector2.zero, Vector2.one, Vector4.zero);
 
@@ -220,6 +217,7 @@ namespace Cube.App
             var overlay = UiKit.Panel(cameraCard, "DetectionGrid", new Color(0, 0, 0, 0));
             UiKit.Stretch(overlay,
                 new Vector2(0.17f, 0.17f), new Vector2(0.83f, 0.83f), Vector4.zero);
+            _detectionGrid = overlay.gameObject;
             _liveCells = new Image[9];
             for (int row = 0; row < 3; row++)
                 for (int col = 0; col < 3; col++)
@@ -252,9 +250,7 @@ namespace Cube.App
             _targetColorLabel = UiKit.Label(_targetColorBanner.transform, "Label", "", 30,
                 Color.black, TextAnchor.MiddleCenter);
             _targetColorLabel.fontStyle = FontStyle.Bold;
-            _targetColorLabel.resizeTextForBestFit = true;
-            _targetColorLabel.resizeTextMinSize = 21;
-            _targetColorLabel.resizeTextMaxSize = 30;
+            UiKit.Fit(_targetColorLabel, 21, 30);
             UiKit.Stretch((RectTransform)_targetColorLabel.transform,
                 new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f), Vector4.zero);
 
@@ -889,6 +885,7 @@ namespace Cube.App
                 Permission.RequestUserPermission(Permission.Camera, _permissionCallbacks);
                 _cameraMessage.text = "카메라 권한을 확인하고 있습니다…";
                 _cameraMessage.gameObject.SetActive(true);
+                SetDetectionGridVisible(false);
                 return;
             }
 #endif
@@ -921,6 +918,7 @@ namespace Cube.App
             _camera.Play();
             _cameraMessage.text = "카메라 준비 중…";
             _cameraMessage.gameObject.SetActive(true);
+            SetDetectionGridVisible(true);
             _nextLiveSampleAt = 0f;
         }
 
@@ -929,6 +927,14 @@ namespace Cube.App
             if (_cameraMessage == null) return;
             _cameraMessage.text = message;
             _cameraMessage.gameObject.SetActive(true);
+            // 화면이 없는데 격자만 남으면 안내문과 겹쳐 찍힌다. 격자는 미리보기가
+            // 살아 있을 때만 의미가 있으니 같이 감춘다.
+            SetDetectionGridVisible(false);
+        }
+
+        void SetDetectionGridVisible(bool visible)
+        {
+            if (_detectionGrid != null) _detectionGrid.SetActive(visible);
         }
 
         void StopCamera()

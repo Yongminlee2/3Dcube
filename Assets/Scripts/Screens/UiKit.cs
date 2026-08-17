@@ -175,6 +175,20 @@ namespace Cube.App
             text.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
+        /// 칸에 맞춰 글자를 줄이되, 가로 폭도 같이 본다.
+        ///
+        /// 유니티의 자동 축소는 줄바꿈이 꺼져 있으면 세로만 맞추고 가로는 그냥
+        /// 넘겨 버린다. 그래서 번역이 길어지는 언어에서 글자가 칸 밖으로 나가
+        /// 잘렸다(프랑스어 "Historique d'entraînemer"). 두 설정은 늘 같이 켜야
+        /// 하므로 한 곳에 묶어 둔다.
+        public static void Fit(Text text, int min, int max)
+        {
+            if (text == null) return;
+            Wrap(text);
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = min;
+            text.resizeTextMaxSize = max;
+        }
 
         public static Image Icon(Transform parent, string name, string resourceName, Color tint)
         {
@@ -214,9 +228,7 @@ namespace Cube.App
             var heading = Label(parent, "Title", title, UiMetrics.ScreenTitle,
                 p.TextPrimary, TextAnchor.MiddleLeft);
             heading.fontStyle = FontStyle.Bold;
-            heading.resizeTextForBestFit = true;
-            heading.resizeTextMinSize = 28;
-            heading.resizeTextMaxSize = UiMetrics.ScreenTitle;
+            Fit(heading, 28, UiMetrics.ScreenTitle);
             Stretch((RectTransform)heading.transform,
                 new Vector2(0.14f, 0.915f), new Vector2(0.82f, 0.975f), Vector4.zero);
 
@@ -344,9 +356,7 @@ namespace Cube.App
             // 바뀌자 버튼을 뚫고 화면 밖까지 나갔다. Wrap이면 두 줄로 내려가고,
             // 두 줄로도 모자라면 그때 글자가 줄어든다.
             Wrap(text);
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 14;
-            text.resizeTextMaxSize = UiMetrics.Button;
+            Fit(text, 14, UiMetrics.Button);
             Stretch((RectTransform)text.transform, Vector2.zero, Vector2.one, new Vector4(6, 2, 6, 2));
 
             var btn = go.GetComponent<Button>();

@@ -349,7 +349,8 @@ namespace Cube.App.Tests
             Assert.AreEqual(net.anchorMax.x, hint.anchorMax.x, 0.001f);
             Assert.AreEqual(net.anchorMin.x, bar.anchorMin.x, 0.001f);
             Assert.AreEqual(net.anchorMax.x, bar.anchorMax.x, 0.001f);
-            Assert.LessOrEqual(bar.anchorMax.y - bar.anchorMin.y, 0.06f,
+            // 아이콘을 알아볼 만한 크기로 키우려면 바가 이만큼은 필요하다.
+            Assert.LessOrEqual(bar.anchorMax.y - bar.anchorMin.y, 0.075f,
                 "하단 버튼 바가 글자보다 지나치게 크다");
 
             var pad = root.Find("Pad") as RectTransform;
@@ -364,8 +365,18 @@ namespace Cube.App.Tests
             var explanation = root.Find("Hint/HintExplanation")?.GetComponent<Text>();
             Assert.NotNull(label);
             Assert.NotNull(explanation);
-            Assert.GreaterOrEqual(label.fontSize, 24);
+            Assert.GreaterOrEqual(label.fontSize, 20);
             Assert.GreaterOrEqual(explanation.resizeTextMaxSize, 23);
+
+            // 아이콘 칸이 글자 칸보다 좁으면, 굵은 글자 옆에서 아이콘만 작아 보인다.
+            // 실기기에서 실제로 그렇게 보여서 고쳤던 부분이라 규격으로 박아 둔다.
+            var icon = root.Find("Bar/Bar_섞기/Icon") as RectTransform;
+            var labelRect = (RectTransform)label.transform;
+            Assert.NotNull(icon);
+            Assert.GreaterOrEqual(
+                icon.anchorMax.y - icon.anchorMin.y,
+                labelRect.anchorMax.y - labelRect.anchorMin.y,
+                "아이콘 칸이 글자 칸보다 작다");
         }
     }
 }
