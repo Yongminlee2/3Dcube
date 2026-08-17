@@ -35,6 +35,21 @@ namespace Cube.App
         static readonly string[] PhysicalColorNames =
             { "노란색", "흰색", "초록색", "파란색", "빨간색", "주황색" };
 
+        /// 방향 안내에 세우는 칸 순서.
+        static readonly string[] GuideDirections = { "위", "아래", "왼쪽", "오른쪽", "뒤" };
+
+        /// 어떤 면을 카메라로 향했을 때 GuideDirections 순서대로 와야 하는 면.
+        /// Face 순서(U, D, F, B, L, R)로 찾는다.
+        static readonly Face[][] GuideFaces =
+        {
+            new[] { Face.B, Face.F, Face.L, Face.R, Face.D },  // 윗면을 볼 때
+            new[] { Face.F, Face.B, Face.L, Face.R, Face.U },  // 아랫면
+            new[] { Face.U, Face.D, Face.L, Face.R, Face.B },  // 앞면
+            new[] { Face.U, Face.D, Face.R, Face.L, Face.F },  // 뒷면
+            new[] { Face.U, Face.D, Face.B, Face.F, Face.R },  // 왼쪽 면
+            new[] { Face.U, Face.D, Face.F, Face.B, Face.L },  // 오른쪽 면
+        };
+
         public CubeState Current { get; private set; }
         public byte SelectedColor { get; private set; }
         public int CapturedFaceCount
@@ -73,7 +88,8 @@ namespace Cube.App
         Text _instruction;
         Image _targetColorBanner;
         Text _targetColorLabel;
-        Text _orientationGuide;
+        Image[] _guideChips;
+        Text[] _guideChipLabels;
         Button[] _faceButtons;
         Image[,] _facePreviewCells;
         Outline[] _faceOutlines;
@@ -157,6 +173,68 @@ namespace Cube.App
             SkinService.Changed -= OnSkinChanged;
         }
 
+        /// 지금 찍는 면을 카메라로 향했을 때, 둘레 네 면과 등 뒤 면에 어떤 색이
+        /// 와야 하는지를 색 칩으로 보여 준다. 글로만 적어 두면 읽지 않고 넘어가
+        /// 방향을 틀리게 잡는 일이 있어서 색을 직접 띄운다.
+        /// 칩 안에 색 이름도 같이 적어 색만으로 구분하지 않아도 되게 했다.
+        void BuildOrientationGuide()
+        {
+            var guide = UiKit.Panel(_scanRoot, "OrientationGuide", new Color(0, 0, 0, 0));
+            UiKit.Stretch(guide,
+                new Vector2(0.055f, 0.885f), new Vector2(0.945f, 0.952f), Vector4.zero);
+
+            _guideChips = new Image[GuideDirections.Length];
+            _guideChipLabels = new Text[GuideDirections.Length];
+
+            for (int i = 0; i < GuideDirections.Length; i++)
+            {
+                var column = UiKit.Panel(guide, $"Guide_{i}", new Color(0, 0, 0, 0));
+                column.anchorMin = new Vector2(i / (float)GuideDirections.Length, 0f);
+                column.anchorMax = new Vector2((i + 1) / (float)GuideDirections.Length, 1f);
+                column.offsetMin = new Vector2(4f, 0f);
+                column.offsetMax = new Vector2(-4f, 0f);
+
+                var direction = UiKit.Label(column, "Direction", GuideDirections[i], 19,
+                    _p.TextSecondary, TextAnchor.LowerCenter);
+                direction.fontStyle = FontStyle.Bold;
+                UiKit.Fit(direction, 12, 19);
+                UiKit.Stretch((RectTransform)direction.transform,
+                    new Vector2(0f, 0.50f), new Vector2(1f, 1f), Vector4.zero);
+
+                var chip = UiKit.Cell(column, "Chip", _p.SurfaceMuted);
+                chip.sprite = UiKit.RoundedPill;
+                chip.type = Image.Type.Sliced;
+                UiKit.Stretch((RectTransform)chip.transform,
+                    new Vector2(0f, 0.02f), new Vector2(1f, 0.46f), Vector4.zero);
+                _guideChips[i] = chip;
+
+                var colorName = UiKit.Label(chip.transform, "Name", "", 17,
+                    Color.black, TextAnchor.MiddleCenter);
+                colorName.fontStyle = FontStyle.Bold;
+                UiKit.Fit(colorName, 10, 17);
+                UiKit.Stretch((RectTransform)colorName.transform,
+                    new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.94f), Vector4.zero);
+                _guideChipLabels[i] = colorName;
+            }
+        }
+
+        void RefreshOrientationGuide(Face target)
+        {
+            if (_guideChips == null) return;
+            Face[] around = GuideFaces[(int)target];
+            Color[] reference = CubeColorRecognizer.PhysicalReferenceColors();
+
+            for (int i = 0; i < _guideChips.Length; i++)
+            {
+                Color color = reference[(int)around[i]];
+                _guideChips[i].color = color;
+                float luminance = 0.299f * color.r + 0.587f * color.g + 0.114f * color.b;
+                _guideChipLabels[i].color = luminance > 0.55f
+                    ? new Color(0.04f, 0.05f, 0.07f) : Color.white;
+                _guideChipLabels[i].text = PhysicalColorNames[(int)around[i]];
+            }
+        }
+
         void BuildScanUi()
         {
             _scanRoot = UiKit.Panel(transform, "ScanMode", new Color(0, 0, 0, 0));
@@ -175,19 +253,11 @@ namespace Cube.App
             UiKit.Stretch((RectTransform)_instruction.transform,
                 new Vector2(0.25f, 0.950f), new Vector2(0.95f, 0.995f), Vector4.zero);
 
-            var directionGuide = UiKit.Panel(_scanRoot, "OrientationGuide", new Color(0, 0, 0, 0));
-            UiKit.Stretch(directionGuide,
-                new Vector2(0.25f, 0.905f), new Vector2(0.95f, 0.950f), Vector4.zero);
-            _orientationGuide = UiKit.Label(directionGuide, "Label", "", 18,
-                _p.TextSecondary, TextAnchor.MiddleLeft);
-            _orientationGuide.fontStyle = FontStyle.Bold;
-            UiKit.Fit(_orientationGuide, 15, 18);
-            UiKit.Stretch((RectTransform)_orientationGuide.transform,
-                Vector2.zero, Vector2.one, Vector4.zero);
+            BuildOrientationGuide();
 
             var cameraSlot = UiKit.Panel(_scanRoot, "CameraSlot", new Color(0f, 0f, 0f, 0f));
             UiKit.Stretch(cameraSlot,
-                new Vector2(0.055f, 0.445f), new Vector2(0.945f, 0.905f), Vector4.zero);
+                new Vector2(0.055f, 0.445f), new Vector2(0.945f, 0.878f), Vector4.zero);
 
             var cameraCard = UiKit.Card(cameraSlot, "CameraCard", _p, raised: true);
             UiKit.Stretch(cameraCard, Vector2.zero, Vector2.one, Vector4.zero);
@@ -302,7 +372,8 @@ namespace Cube.App
 
                 var label = button.transform.Find("Label").GetComponent<Text>();
                 label.text = CaptureNames[slot];
-                label.fontSize = 16;
+                // 자동 축소가 켜져 있으면 fontSize는 무시되고 상한이 실제 크기를 정한다.
+                UiKit.Fit(label, 12, 28);
                 label.fontStyle = FontStyle.Bold;
                 label.alignment = TextAnchor.LowerCenter;
                 UiKit.Stretch((RectTransform)label.transform,
@@ -669,8 +740,10 @@ namespace Cube.App
                 _targetColorLabel.text =
                     $"{_captureSlot + 1}/6  {FaceNames[(int)targetFace]}면 촬영 · 가운데 {PhysicalColorNames[(int)targetFace]}";
             }
-            if (_orientationGuide != null)
-                _orientationGuide.text = OrientationGuide(targetFace);
+            RefreshOrientationGuide(targetFace);
+
+            Color[] centers = ClassificationCenters();
+            Color[] palette = CubeColorRecognizer.PhysicalReferenceColors();
 
             for (int slot = 0; slot < 6; slot++)
             {
@@ -678,8 +751,12 @@ namespace Cube.App
                 bool done = _captured[(int)face];
                 for (int cell = 0; cell < 9; cell++)
                 {
+                    // 찍힌 그대로가 아니라 「앱이 무슨 색으로 봤는지」를 보여 준다.
+                    // 원본 표본을 그대로 띄우면 조명 때문에 위 안내의 기준색과
+                    // 달라 보여서, 맞게 읽힌 건지 사람이 판단할 수가 없었다.
                     Color color = done && _samplesByFace[(int)face] != null
-                        ? _samplesByFace[(int)face][cell]
+                        ? palette[CubeColorRecognizer.NearestCenter(
+                            _samplesByFace[(int)face][cell], centers)]
                         : _p.SurfaceMuted;
                     _facePreviewCells[slot, cell].color = color;
                 }
@@ -739,19 +816,6 @@ namespace Cube.App
                 case Face.L: return "④ 앞면에서 왼쪽 면을 카메라 쪽으로";
                 case Face.R: return "⑤ 앞면에서 오른쪽 면을 카메라 쪽으로";
                 default: return "⑥ 노란색을 위로 둔 채 뒤로 180°";
-            }
-        }
-
-        static string OrientationGuide(Face face)
-        {
-            switch (face)
-            {
-                case Face.F: return "위 노랑 · 아래 흰색 · 왼쪽 빨강 · 오른쪽 주황";
-                case Face.U: return "위 파랑 · 아래 초록 · 왼쪽 빨강 · 오른쪽 주황";
-                case Face.D: return "위 초록 · 아래 파랑 · 왼쪽 빨강 · 오른쪽 주황";
-                case Face.L: return "위 노랑 · 아래 흰색 · 왼쪽 파랑 · 오른쪽 초록";
-                case Face.R: return "위 노랑 · 아래 흰색 · 왼쪽 초록 · 오른쪽 파랑";
-                default: return "위 노랑 · 아래 흰색 · 왼쪽 주황 · 오른쪽 빨강";
             }
         }
 
@@ -969,10 +1033,27 @@ namespace Cube.App
             _cameraMessage.gameObject.SetActive(!stable);
             if (_primaryScanButton != null && CapturedFaceCount < 6)
                 _primaryScanButton.interactable = stable;
+            Color[] centers = ClassificationCenters();
+            Color[] palette = CubeColorRecognizer.PhysicalReferenceColors();
             for (int i = 0; i < 9; i++)
             {
-                _liveCells[i].color = _liveSamples[i];
+                // 위 방향 안내와 같은 여섯 색으로 보여 줘야, 지금 앱이 이 칸을
+                // 무슨 색으로 읽고 있는지 바로 견줘 볼 수 있다.
+                _liveCells[i].color = palette[
+                    CubeColorRecognizer.NearestCenter(_liveSamples[i], centers)];
             }
+        }
+
+        /// 색을 가려낼 기준. 이미 찍은 면은 그 면에서 실제로 얻은 가운데 색을
+        /// 쓰고, 아직 안 찍은 면은 실물 큐브의 기준색으로 메운다 — 찍을수록
+        /// 그 자리의 조명에 맞춰 정확해진다.
+        Color[] ClassificationCenters()
+        {
+            Color[] centers = CubeColorRecognizer.PhysicalReferenceColors();
+            for (int face = 0; face < centers.Length; face++)
+                if (_captured[face] && _samplesByFace[face] != null)
+                    centers[face] = _samplesByFace[face][4];
+            return centers;
         }
 
         void ResetLiveSampling()

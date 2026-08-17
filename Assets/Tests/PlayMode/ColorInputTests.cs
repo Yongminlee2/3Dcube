@@ -148,8 +148,11 @@ namespace Cube.App.Tests
             Assert.IsTrue(expected.SameAs(_input.Current));
         }
 
+        /// 미리보기는 찍힌 색이 아니라 「앱이 무슨 색으로 읽었는지」를 보여 준다.
+        /// 원본 표본을 그대로 띄우면 조명 탓에 위 방향 안내의 기준색과 달라 보여,
+        /// 제대로 읽힌 건지 사람이 판단할 수가 없었다.
         [Test]
-        public void CapturedFacePreviewPreservesRawSampleColors()
+        public void CapturedFacePreviewShowsTheRecognizedColor()
         {
             var samples = new[]
             {
@@ -164,9 +167,23 @@ namespace Cube.App.Tests
                 BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.IsNotNull(field);
             var previews = (UnityEngine.UI.Image[,])field.GetValue(_input);
-            AssertColor(samples[0], previews[1, 0].color);
-            AssertColor(samples[4], previews[1, 4].color);
-            AssertColor(samples[8], previews[1, 8].color);
+            Color[] references = CubeColorRecognizer.PhysicalReferenceColors();
+
+            // 어느 칸이든 실물 큐브의 여섯 색 중 하나여야 한다.
+            for (int cell = 0; cell < 9; cell++)
+            {
+                Color shown = previews[1, cell].color;
+                bool known = false;
+                foreach (Color reference in references)
+                    if (Mathf.Abs(reference.r - shown.r) < 0.001f
+                        && Mathf.Abs(reference.g - shown.g) < 0.001f
+                        && Mathf.Abs(reference.b - shown.b) < 0.001f) known = true;
+                Assert.IsTrue(known, $"{cell}번 칸에 큐브 색이 아닌 색이 떴다: {shown}");
+            }
+
+            // 뚜렷한 두 칸은 어느 색으로 읽혀야 하는지 정해져 있다.
+            AssertColor(references[(int)Face.L], previews[1, 0].color);   // 선명한 빨강
+            AssertColor(references[(int)Face.U], previews[1, 4].color);   // 가운데 노랑
         }
 
         [Test]
@@ -224,16 +241,35 @@ namespace Cube.App.Tests
             StringAssert.Contains("앞면", target.text);
             StringAssert.Contains("초록색", target.text);
 
-            var orientation = _input.transform.Find(
-                "ScanMode/OrientationGuide/Label")
-                .GetComponent<UnityEngine.UI.Text>();
-            Assert.IsNotNull(orientation);
-            StringAssert.Contains("빨강", orientation.text);
-            StringAssert.Contains("주황", orientation.text);
-            StringAssert.Contains("왼쪽", orientation.text);
-            StringAssert.Contains("오른쪽", orientation.text);
-            Assert.IsFalse(orientation.text.Contains("중심"));
-            Assert.IsFalse(orientation.text.Contains("↑"));
+            // 방향 안내는 글이 아니라 색 칩으로 보여 준다. 앞면을 찍는 동안
+            // 둘레 네 면과 등 뒤 면에 와야 하는 색이 그대로 떠 있어야 한다.
+            var expected = new[]
+            {
+                ("위", Face.U, "노란색"),
+                ("아래", Face.D, "흰색"),
+                ("왼쪽", Face.L, "빨간색"),
+                ("오른쪽", Face.R, "주황색"),
+                ("뒤", Face.B, "파란색"),
+            };
+            var reference = CubeColorRecognizer.PhysicalReferenceColors();
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                var (label, face, colorName) = expected[i];
+                var column = _input.transform.Find($"ScanMode/OrientationGuide/Guide_{i}");
+                Assert.IsNotNull(column, $"{label} 칸이 없다");
+
+                var direction = column.Find("Direction").GetComponent<UnityEngine.UI.Text>();
+                Assert.AreEqual(label, direction.text);
+
+                var chip = column.Find("Chip").GetComponent<UnityEngine.UI.Image>();
+                TestColors.AssertSame(reference[(int)face], chip.color,
+                    $"{label}에 뜬 색이 {face}면 색이 아니다");
+
+                var name = column.Find("Chip/Name").GetComponent<UnityEngine.UI.Text>();
+                Assert.AreEqual(colorName, name.text,
+                    "색만으로 구분하지 않도록 칩 안에 색 이름도 적어야 한다");
+            }
         }
 
         [Test]
