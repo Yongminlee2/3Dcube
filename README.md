@@ -260,9 +260,23 @@ LBL 7단계 코스, 공식 시연, 진도 저장, 공식 라이브러리.
 
 이 PC의 Unity는 한글 경로(`C:\Users\사용자\...`)에 설치돼 있어서 **환경 변수 없이는 빌드가 실패한다.**
 
+폰에 꽂아 확인할 APK — 디버그 키로 서명되므로 스토어에는 올릴 수 없다.
+
 ```bash
 TEMP="C:/workAndroid/tmp-ascii" TMP="C:/workAndroid/tmp-ascii" GRADLE_USER_HOME="C:/workAndroid/gradle-home-ascii" "C:/Users/사용자/AppData/Local/Unity/Editors/6000.3.18f1/Editor/Unity.exe" -batchmode -quit -nographics -projectPath "C:/workAndroid/3Dcube" -executeMethod CubeEditor.BuildScript.BuildApk -logFile "build.log"
 ```
+
+스토어에 올릴 AAB — 릴리스 키로 서명한다. 신규 앱은 APK를 받지 않는다.
+
+```bash
+TEMP="C:/workAndroid/tmp-ascii" TMP="C:/workAndroid/tmp-ascii" GRADLE_USER_HOME="C:/workAndroid/gradle-home-ascii" "C:/Users/사용자/AppData/Local/Unity/Editors/6000.3.18f1/Editor/Unity.exe" -batchmode -quit -nographics -projectPath "C:/workAndroid/3Dcube" -executeMethod CubeEditor.BuildScript.BuildAab -logFile "build.log"
+```
+
+AAB 빌드는 프로젝트 루트의 `keystore.properties`와 `upload.jks`를 읽는다.
+**둘 다 `.gitignore`에 있어 저장소에 올라가지 않는다.** 다른 앱들과 같은
+업로드 키를 쓰므로, 잃어버리면 그 앱들까지 업데이트를 못 올린다 — 백업을 유지할 것.
+파일이 없으면 빌드가 그 자리에서 멈춘다(디버그 키로 서명된 것이 스토어로
+새어 나가지 않게 하려는 것이다).
 
 한글 경로가 IL2CPP와 Gradle을 어떻게 깨뜨리는지, ASCII 정션으로 어떻게 우회하는지는 [`docs/ascii-path-trap.md`](docs/ascii-path-trap.md)에 있다.
 
@@ -282,11 +296,22 @@ TEMP="C:/workAndroid/tmp-ascii" TMP="C:/workAndroid/tmp-ascii" GRADLE_USER_HOME=
 | [`docs/superpowers/plans/`](docs/superpowers/plans/) | 구현 계획 (어떤 순서로) |
 | [`docs/device-checklist.md`](docs/device-checklist.md) | 실기기 확인 목록 |
 | [`docs/ascii-path-trap.md`](docs/ascii-path-trap.md) | 한글 경로 빌드 함정 |
-| [`docs/store-listing.md`](docs/store-listing.md) | 스토어 등록 문안 (한국어 원본) |
-| [`docs/store-listing-i18n.md`](docs/store-listing-i18n.md) | 스토어 등록 문안 14개 언어 |
-| [`docs/privacy-policy.md`](docs/privacy-policy.md) | 개인정보처리방침 |
-| [`docs/privacy-policy-en.md`](docs/privacy-policy-en.md) | 개인정보처리방침 영어판 |
 | [`docs/skin-brief-for-codex.md`](docs/skin-brief-for-codex.md) | 이미지 텍스처 스킨 발주 스펙 |
+
+### 출시 문서는 이 저장소에 없다
+
+개인정보처리방침·스토어 등록 문안·지원 안내는 **`legal` 저장소**에 있다
+([github.com/Yongminlee2/legal](https://github.com/Yongminlee2/legal), `legal/cube3d/`).
+
+이 저장소는 언젠가 비공개로 돌릴 수 있는데 스토어에 넣은 주소는 항상 열려
+있어야 해서다. 사본을 양쪽에 두면 한쪽만 고쳐 어긋나므로 아예 옮겼다.
+
+| 문서 | 주소 |
+|---|---|
+| 개인정보처리방침 | https://yongminlee2.github.io/legal/cube3d/privacy.html |
+| 앱 소개 (스토어 "웹사이트" 칸) | https://yongminlee2.github.io/legal/cube3d/ |
+| 지원 안내 | https://yongminlee2.github.io/legal/cube3d/support.html |
+| 등록 문안 14개 언어 + 출시 메모 | `legal/cube3d/store-listing.md` |
 
 ### 밖에서 가져온 것
 
@@ -326,13 +351,8 @@ MIT는 **배포물에 저작권 문구를 함께 넣을 것**을 요구한다. �
 
 ## 10. 남은 일
 
-- **스토어용 스크린샷 촬영** — 언어별로 찍어 두면 좋지만, 최소한 영어판은 있어야 한다
-- 릴리스 서명
-- 스토어 등록과 심사
-  - 언어별 등록 정보를 14개 다 넣을 것. [`docs/store-listing-i18n.md`](docs/store-listing-i18n.md)에서 복사한다. 넣지 않으면 그 나라 사용자에게 한국어 설명이 그대로 보인다
-  - 설명란 맨 아래에 Tabler Icons 오픈소스 고지를 넣을 것 (8절 참고)
-  - 개인정보처리방침을 공개 주소에 올리고 콘솔에 넣을 것. 영어판은 [`docs/privacy-policy-en.md`](docs/privacy-policy-en.md)
-  - **데이터 보안 신고에서 카메라를 어떻게 답할지** — 권한은 쓰지만 이미지를 저장·전송하지 않으므로 "사진/동영상 수집"에는 체크하지 않는다 (근거는 방침 3절)
+- **스토어용 스크린샷 촬영** — 최소 2장, 권장 4~8장. 이것이 없으면 등록 자체가 되지 않는다
+- 스토어 등록과 심사 — 넣을 것과 답할 것은 `legal/cube3d/store-listing.md`에 정리해 두었다
 - **번역 검수** — 문법과 용어는 맞췄지만 태국어·베트남어·인도네시아어는 원어민이 읽었을 때 어색한지 판단하지 못했다. 봐줄 사람이 있으면 출시 전에 한 번 받는 편이 좋다
 - iOS 이식 (Mac 필요. 플랫폼 종속 코드는 격리해 뒀지만 검증은 못 했다)
 - 이미지 텍스처 스킨 나머지 7종 (대리석·메탈·은하수 등) — [`docs/skin-brief-for-codex.md`](docs/skin-brief-for-codex.md) 스펙대로 도착하면 `SkinImporter`로 붙인다
