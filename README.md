@@ -4,7 +4,7 @@
 
 - 엔진: Unity 6000.3.18f1 (URP)
 - 패키지: `com.ymlee.cube`
-- 버전: 1.0.0 (코드 1)
+- 버전: 1.0.0 (코드 2) — 콘솔에 올라간 것은 코드 1(비공개 테스트)
 - 대상: 안드로이드 우선 출시, iOS는 이후
 
 ---
@@ -440,6 +440,21 @@ MIT는 **배포물에 저작권 문구를 함께 넣을 것**을 요구한다. �
 
 **서명키는 다른 앱들과 공용이다.** 잃어버리면 그 앱들까지 업데이트를 못 올린다.
 `keystore.properties`와 `upload.jks`는 저장소에 없으므로(7절) 백업에서 가져와야 한다.
+
+**빌드가 「No valid Unity Editor license found」로 죽으면 Unity Hub부터 확인한다.**
+유니티는 무료 Personal이라도 계정 활성화가 있어야 에디터가 돈다. 그 라이선스를
+주기적으로 갱신해 주는 것이 Hub이므로 **Hub을 지우면 얼마 뒤 라이선스가 풀린다.**
+실제로 그랬다 — 8월 18일까지 잘 되던 빌드가 9월 2일에 죽었고, 원인은
+`AppData\Roaming\UnityHub`에 설정만 남고 `Unity Hub.exe`가 사라진 것이었다.
+**오프라인(수동) 활성화로는 못 푼다.** `-createManualActivationFile`로 `.alf`를 만들어
+올려 봐야 "오프라인 활성화는 엔터프라이즈 전용"이라며 막힌다. Hub을 다시 깔고 한 번
+띄우면 복구된다. 확인은 이 명령으로 한다.
+
+```
+%APPDATA%\UnityHub\external-modules\licensingClient\Unity.Licensing.Client.exe --showEntitlements
+```
+
+`com.unity.editor.headless`가 보이면 배치 빌드가 된다.
 
 **출시에 필요한 것은 이 저장소에 없다.** 문안·아이콘·개인정보처리방침은 전부
 `legal` 저장소에 있다(8절). 이 저장소가 비공개가 되어도 스토어 링크는 살아 있어야
